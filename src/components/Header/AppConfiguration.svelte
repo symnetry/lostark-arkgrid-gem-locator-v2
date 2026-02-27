@@ -20,8 +20,7 @@
     determineGemGrade,
   } from '../../lib/models/arkGridGems';
   import { type ArkGridGem } from '../../lib/models/arkGridGems';
-  import { LostArkOpenAPI } from '../../lib/openapi/Api';
-  import { apiClient } from '../../lib/openapi/openapi';
+  import { LostArkOpenAPI, apiClient } from '../../lib/openapi';
   import {
     appConfig,
     toggleDarkMode,
@@ -226,10 +225,10 @@
       if (arkpassive) {
         const title = arkpassive.Title;
         if (
-          title == '만개' ||
-          title == '절실한 구원' ||
-          title == '축복의 오라 ' ||
-          title == '해방자'
+          title === '만개' ||
+          title === '절실한 구원' ||
+          title === '축복의 오라' ||
+          title === '해방자'
         ) {
           isSupporter = true;
         }
