@@ -192,9 +192,10 @@
   } {
     // Svelte에서 사용하는 ArkGridGem을 solver가 사용하는 형태로 변경
     const reverseMap: ArkGridGem[] = [];
-    const optionIndexMap = !isSupporter
-      ? ['공격력', '추가 피해', '보스 피해']
-      : ['아군 피해 강화', '낙인력', '아군 공격 강화']; // 수집할 옵션들
+    const optionIndexMap =
+      isSupporter === false
+        ? ['아군 피해 강화', '낙인력', '아군 공격 강화']
+        : ['공격력', '추가 피해', '보스 피해']; // 수집할 옵션들
     const gems = gem.map((g, index) => {
       let coeff = [0, 0, 0];
 
@@ -277,12 +278,31 @@
     });
   }
 
+  type PrecalculatedGspList = {
+    order?: GemSetPack[];
+    chaos?: GemSetPack[];
+  };
+  type StepCallback = (orderGspList: GemSetPack[], chaosGspList: GemSetPack[]) => void;
+  type SolveOptions = {
+    isSupporter?: boolean; // 서포터 여부
+    perfectSolve?: boolean; // 중복 무시 여부
+    updateAnswer?: boolean; // 결과를 svelte state에 반영 여부
+    debugMessage?: boolean; // 속도 출력 여부
+    precalculatedGsp?: PrecalculatedGspList; // GemSetPack 계산 대신 주입
+    onStep?: StepCallback; // 중간 결과 업데이트용 콜백
+  };
+
   function solve(
     inOrderGems: ArkGridGem[],
     inChaosGems: ArkGridGem[],
-    isSupporter = false, // 서폿용?
-    perfectSolve = false, // 중복 무시?
-    dryRun = false // 결과 업데이트 여부
+    {
+      isSupporter = false,
+      perfectSolve = false,
+      updateAnswer = false,
+      debugMessage = false,
+      precalculatedGsp,
+      onStep,
+    }: SolveOptions = {}
   ) {
     /* sovler.Core로 변경 */
     const orderCores: Core[] = [];
@@ -372,18 +392,35 @@
     }
 
     // 질서와 혼돈 코어에 대해서 중복을 고려한, 장착 가능한 GemSet들이 3개 모인 GemSetPack 계산
-    let start = performance.now();
-    const orderGspList = getBestGemSetPacks(orderGssList, scoreMaps, perfectSolve);
-    if (!dryRun) console.log(`질서 배치 실행 시간: ${performance.now() - start} ms`);
-    start = performance.now();
-    const chaosGspList = getBestGemSetPacks(chaosGssList, scoreMaps, perfectSolve);
-    if (!dryRun) console.log(`혼돈 배치 실행 시간: ${performance.now() - start} ms`);
+    let orderGspList: GemSetPack[] = [];
+    // precalculated가 있으면 사용, 없으면 계산
+    if (precalculatedGsp?.order === undefined) {
+      let start = performance.now();
+      orderGspList = getBestGemSetPacks(orderGssList, scoreMaps, perfectSolve);
+      if (debugMessage) console.log(`질서 배치 실행 시간: ${performance.now() - start} ms`);
+    } else {
+      orderGspList = precalculatedGsp.order;
+    }
+
+    let chaosGspList: GemSetPack[] = [];
+    if (precalculatedGsp?.chaos === undefined) {
+      let start = performance.now();
+      chaosGspList = getBestGemSetPacks(chaosGssList, scoreMaps, perfectSolve);
+      if (debugMessage) console.log(`혼돈 배치 실행 시간: ${performance.now() - start} ms`);
+    } else {
+      chaosGspList = precalculatedGsp.chaos;
+    }
+
+    // 콜백 설정돼있으면 불러줌 (받아서 잠시 저장해둘듯)
+    if (onStep) {
+      onStep(orderGspList, chaosGspList);
+    }
 
     // gspList는 maxScore 기준으로 내림차순 정렬되어 있음
     // 서로의 영향력이 적을 수록 실제 전투력은 maxScore와 가까우니, 우선 각 첫 번째 원소를 대상으로 시작 설정
     let answer = new GemSetPackTuple(orderGspList[0] ?? null, chaosGspList[0] ?? null, isSupporter);
 
-    start = performance.now();
+    let start = performance.now();
     // GemSetPack은 정말 많지만, 실제로 그들의 값 (공, 추, 보, 코어)만 보면 몇 종류 되지 않음
     // 같은 종류라면 하나의 GemSetPack만 수집하기
     const gemSetPackSet: GemSetPack[][] = [[], []];
@@ -404,7 +441,7 @@
         }
       }
     }
-    if (!dryRun) console.log(`중복 제거 실행 시간: ${performance.now() - start} ms`);
+    if (debugMessage) console.log(`중복 제거 실행 시간: ${performance.now() - start} ms`);
     if (gemSetPackSet[0].length > 0 && gemSetPackSet[1].length > 0) {
       for (const gsp1 of gemSetPackSet[0]) {
         for (const gsp2 of gemSetPackSet[1]) {
@@ -415,8 +452,7 @@
         }
       }
     }
-    if (!dryRun) {
-      // 진짜인 경우에만 결과 갱신
+    if (updateAnswer) {
       unassignGems();
       updateSolveAnswer({
         assignedGems: JSON.parse(
@@ -450,10 +486,26 @@
         perfectChaosGems.push({ gemAttr: '혼돈', ...gem });
       }
     }
-    const answer = solve(orderGems, chaosGems, isSupporter, false, false);
+    // 계산 후, 질서 혼돈 GspList를 precalculatedGspList에 담아둠
+    let precalculatedGspListOrder: PrecalculatedGspList | undefined;
+    let precalculatedGspListChaos: PrecalculatedGspList | undefined;
+    const answer = solve(orderGems, chaosGems, {
+      isSupporter,
+      debugMessage: true,
+      updateAnswer: true,
+      onStep: (order, chaos) => {
+        precalculatedGspListOrder = {
+          order,
+        };
+        precalculatedGspListChaos = {
+          chaos,
+        };
+      },
+    });
     const score = (answer.score - 1) * 100; // 내 최고 점수
     const bestScore =
-      (solve(perfectOrderGems, perfectChaosGems, isSupporter, true, true).score - 1) * 100; // 내 코어로 가능한 점수
+      (solve(perfectOrderGems, perfectChaosGems, { isSupporter, perfectSolve: true }).score - 1) *
+      100; // 내 코어로 가능한 점수
 
     const perfectScore = // 이론상 최고 점수
       !isSupporter // 딜러
@@ -508,6 +560,7 @@
 
         // 모든 젬을 한 개씩 추가해서 확인
         // XXX 범위를 줄일까?
+        let start = performance.now();
         for (let gemReq = 3; gemReq < 10; gemReq++) {
           for (let gemPoint = 5; gemPoint >= 1; gemPoint--) {
             const newGem: ArkGridGem = {
@@ -520,9 +573,11 @@
             const newAnswer = solve(
               attr === '질서' ? [...orderGems, newGem] : orderGems,
               attr === '혼돈' ? [...chaosGems, newGem] : chaosGems,
-              isSupporter,
-              false,
-              true
+              {
+                isSupporter,
+                precalculatedGsp:
+                  attr === '혼돈' ? precalculatedGspListOrder : precalculatedGspListChaos,
+              }
             );
 
             const newGsp = attr === '질서' ? newAnswer.gsp1 : newAnswer.gsp2;
@@ -549,6 +604,7 @@
             }
           }
         }
+        console.log('추가 젬 계산', performance.now() - start, 'ms');
       }
     }
     updateAdditionalGemResult(additionalGem);
