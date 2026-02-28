@@ -1,0 +1,1695 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "v1",
+    "title": "Lostark Open API"
+  },
+  "host": "developer-lostark.game.onstove.com",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/armories/characters/{characterName}": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of profile information by a character name.",
+        "operationId": "Armories_GetProfileAll",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filtering the Data e.g., profiles+equipment+avatars+combat-skills+engravings+cards+gems+colosseums+collectibles+arkpassive+arkgrid",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/profiles": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the basic stats by a character name.",
+        "operationId": "Armories_GetProfileInfo",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArmoryProfile"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/equipment": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the items equipped by a character name.",
+        "operationId": "Armories_GetEquipment",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ArmoryEquipment"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/avatars": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the avatars equipped by a character name.",
+        "operationId": "Armories_GetAvatars",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ArmoryAvatar"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/combat-skills": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the combat skills by a character name.",
+        "operationId": "Armories_GetSkills",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ArmorySkill"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/engravings": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the engravings equipped by a character name.",
+        "operationId": "Armories_GetEngrave",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArmoryEngraving"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/cards": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the cards equipped by a character name.",
+        "operationId": "Armories_GetCard",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArmoryCard"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/gems": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the gems equipped by a character name.",
+        "operationId": "Armories_GetGem",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArmoryGem"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/colosseums": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the proving grounds by a character name.",
+        "operationId": "Armories_GetColosseumInfo",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ColosseumInfo"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/collectibles": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the collectibles by a character name.",
+        "operationId": "Armories_GetCollections",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Collectible"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/arkpassive": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the ark passive by a character name.",
+        "operationId": "Armories_GetArkPassive",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArkPassive"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/armories/characters/{characterName}/arkgrid": {
+      "get": {
+        "tags": [
+          "Armories"
+        ],
+        "summary": "Returns a summary of the ark grid by a character name.",
+        "operationId": "Armories_GetArkGrid",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "description": "The name of the character",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ArkGrid"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "415": {
+            "description": "Unsupported Media Type"
+          },
+          "429": {
+            "description": "Rate Limit Exceeded"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ArmoryProfile": {
+      "type": "object",
+      "properties": {
+        "CharacterImage": {
+          "type": "string"
+        },
+        "ExpeditionLevel": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TownLevel": {
+          "format": "int32",
+          "default": "null",
+          "type": "integer"
+        },
+        "TownName": {
+          "type": "string"
+        },
+        "Title": {
+          "type": "string"
+        },
+        "GuildMemberGrade": {
+          "type": "string"
+        },
+        "GuildName": {
+          "type": "string"
+        },
+        "UsingSkillPoint": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TotalSkillPoint": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Stats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Stat"
+          }
+        },
+        "Tendencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tendency"
+          }
+        },
+        "CombatPower": {
+          "type": "string"
+        },
+        "Decorations": {
+          "$ref": "#/definitions/Decoration"
+        },
+        "HonorPoint": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "ServerName": {
+          "type": "string"
+        },
+        "CharacterName": {
+          "type": "string"
+        },
+        "CharacterLevel": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "CharacterClassName": {
+          "type": "string"
+        },
+        "ItemAvgLevel": {
+          "type": "string"
+        }
+      }
+    },
+    "Stat": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "Value": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Tendency": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "Point": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "MaxPoint": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "Decoration": {
+      "type": "object",
+      "properties": {
+        "Symbol": {
+          "type": "string"
+        },
+        "Emblems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ArmoryEquipment": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmoryAvatar": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "IsSet": {
+          "type": "boolean"
+        },
+        "IsInner": {
+          "type": "boolean"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmorySkill": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Type": {
+          "type": "string"
+        },
+        "SkillType": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Tripods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SkillTripod"
+          }
+        },
+        "Rune": {
+          "$ref": "#/definitions/SkillRune"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "SkillTripod": {
+      "type": "object",
+      "properties": {
+        "Tier": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Slot": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "IsSelected": {
+          "type": "boolean"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "SkillRune": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmoryEngraving": {
+      "type": "object",
+      "properties": {
+        "Engravings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Engraving"
+          }
+        },
+        "Effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EngravingEffect"
+          }
+        },
+        "ArkPassiveEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkPassiveEffect"
+          }
+        }
+      }
+    },
+    "Engraving": {
+      "type": "object",
+      "properties": {
+        "Slot": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "EngravingEffect": {
+      "type": "object",
+      "properties": {
+        "Icon": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        }
+      }
+    },
+    "ArkPassiveEffect": {
+      "type": "object",
+      "properties": {
+        "AbilityStoneLevel": {
+          "format": "int32",
+          "default": "null",
+          "type": "integer"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmoryCard": {
+      "type": "object",
+      "properties": {
+        "Cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Card"
+          }
+        },
+        "Effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CardEffect"
+          }
+        }
+      }
+    },
+    "Card": {
+      "type": "object",
+      "properties": {
+        "Slot": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "AwakeCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AwakeTotal": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "CardEffect": {
+      "type": "object",
+      "properties": {
+        "Index": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "CardSlots": {
+          "type": "array",
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "Items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Effect"
+          }
+        }
+      }
+    },
+    "Effect": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmoryGem": {
+      "type": "object",
+      "properties": {
+        "Gems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Gem"
+          }
+        },
+        "Effects": {
+          "$ref": "#/definitions/ArmoryGemEffect"
+        }
+      }
+    },
+    "Gem": {
+      "type": "object",
+      "properties": {
+        "Slot": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArmoryGemEffect": {
+      "type": "object",
+      "properties": {
+        "Description": {
+          "type": "string"
+        },
+        "Skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GemEffect"
+          }
+        }
+      }
+    },
+    "GemEffect": {
+      "type": "object",
+      "properties": {
+        "GemSlot": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Option": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ColosseumInfo": {
+      "type": "object",
+      "properties": {
+        "Colosseums": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colosseum"
+          }
+        }
+      }
+    },
+    "Colosseum": {
+      "type": "object",
+      "properties": {
+        "SeasonName": {
+          "type": "string"
+        },
+        "Competitive": {
+          "$ref": "#/definitions/AggregationTeamDeathMatchRank"
+        },
+        "TeamDeathmatch": {
+          "$ref": "#/definitions/AggregationTeamDeathMatch"
+        },
+        "TeamElimination": {
+          "$ref": "#/definitions/AggregationElimination"
+        },
+        "CoOpBattle": {
+          "$ref": "#/definitions/Aggregation"
+        },
+        "OneDeathmatch": {
+          "$ref": "#/definitions/AggregationOneDeathmatch"
+        },
+        "OneDeathmatchRank": {
+          "$ref": "#/definitions/AggregationOneDeathmatch"
+        }
+      }
+    },
+    "AggregationTeamDeathMatchRank": {
+      "type": "object",
+      "properties": {
+        "Rank": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "RankName": {
+          "type": "string"
+        },
+        "RankIcon": {
+          "type": "string"
+        },
+        "RankLastMmr": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "VictoryCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "LoseCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TieCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "KillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AceCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "DeathCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "AggregationTeamDeathMatch": {
+      "type": "object",
+      "properties": {
+        "AssistCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "VictoryCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "LoseCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TieCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "KillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AceCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "DeathCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "AggregationElimination": {
+      "type": "object",
+      "properties": {
+        "FirstWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "SecondWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "ThirdWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "FirstPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "SecondPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "ThirdPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AllKillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "VictoryCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "LoseCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TieCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "KillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AceCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "DeathCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "Aggregation": {
+      "type": "object",
+      "properties": {
+        "PlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "VictoryCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "LoseCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "TieCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "KillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AceCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "DeathCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "AggregationOneDeathmatch": {
+      "type": "object",
+      "properties": {
+        "KillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "DeathCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "AllKillCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "OutDamage": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "InDamage": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "FirstWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "SecondWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "ThirdWinCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "FirstPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "SecondPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "ThirdPlayCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "Collectible": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Point": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "MaxPoint": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "CollectiblePoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CollectiblePoint"
+          }
+        }
+      }
+    },
+    "CollectiblePoint": {
+      "type": "object",
+      "properties": {
+        "PointName": {
+          "type": "string"
+        },
+        "Point": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "MaxPoint": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "ArkPassive": {
+      "type": "object",
+      "properties": {
+        "Title": {
+          "type": "string"
+        },
+        "IsArkPassive": {
+          "type": "boolean"
+        },
+        "Points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkPassivePoint"
+          }
+        },
+        "Effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkPassiveEffectSkill"
+          }
+        }
+      }
+    },
+    "ArkPassivePoint": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Value": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Tooltip": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        }
+      }
+    },
+    "ArkPassiveEffectSkill": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "ToolTip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArkGrid": {
+      "type": "object",
+      "properties": {
+        "Slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkGridSlot"
+          }
+        },
+        "Effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkGridEffect"
+          }
+        }
+      }
+    },
+    "ArkGridSlot": {
+      "type": "object",
+      "properties": {
+        "Index": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Point": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        },
+        "Gems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArkGridGem"
+          }
+        }
+      }
+    },
+    "ArkGridGem": {
+      "type": "object",
+      "properties": {
+        "Index": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Icon": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Grade": {
+          "type": "string"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    },
+    "ArkGridEffect": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "Tooltip": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "apiKeyAuth": {
+      "type": "apiKey",
+      "description": "Enter your API JWT here to be used with the interactive documentation <br/> ex:) bearer your_JWT<br/>※ if unauthorized with a valid token, please check out this <a target='_blank' href='/getting-started#practical-example'>bad examples</a>.<br/>※ Please make sure you avoided the invalid cases.",
+      "name": "authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

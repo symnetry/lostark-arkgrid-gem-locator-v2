@@ -11,6 +11,7 @@
 
   let scoreRatio = $derived(Math.min(scoreSet.score / scoreSet.perfectScore, 1));
   let bestRatio = $derived(Math.min(scoreSet.bestScore / scoreSet.perfectScore, 1));
+  let totalScore = $derived(scoreRatio / bestRatio);
   let locale = $derived(appLocale.current);
   const LTitle = $derived(
     {
@@ -45,10 +46,31 @@
         'A smaller gap means you have more high-quality astrogems.',
     }[locale]
   );
+  const LTotalScore = $derived(
+    {
+      ko_kr: '점수',
+      en_us: 'Score',
+    }[locale]
+  );
+  const LTotalScoreDesc = $derived(
+    {
+      ko_kr: '현재 전투력 증가량을 전투력 증가 한계로 나눈 값입니다.',
+      en_us: 'This shows the value calculated by dividing Current CP by Maximum CP Potential.',
+    }[locale]
+  );
 </script>
 
 <div class="root">
   <div class="title">{LTitle}</div>
+  <div>
+    <span class="total-score">{LTotalScore} {(totalScore * 100).toFixed(2)}</span>
+    <span class="tooltip">
+      <i class="fa-solid fa-circle-info info-icon"></i>
+      <span class="tooltip-text">
+        {LTotalScoreDesc}
+      </span>
+    </span>
+  </div>
   <div class="score-wrapper">
     <div class="score-bar">
       <div class="indicator dot moving" style="--target-left:{scoreRatio * 100}%"></div>
@@ -103,6 +125,13 @@
 
   .score-wrapper {
     width: 20rem;
+  }
+  .total-score {
+    font-size: 1.2rem;
+  }
+  .total-score::after {
+    content: ' / 100';
+    font-size: 1rem;
   }
   /* 바 */
   .score-bar {
