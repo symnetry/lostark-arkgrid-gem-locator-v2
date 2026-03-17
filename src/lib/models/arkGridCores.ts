@@ -118,7 +118,7 @@ function adjustCoeff(core: ArkGridCore, isSupporter: boolean) {
   if (
     isSupporter &&
     core.grade == '고대' &&
-    core.attr == '질서' &&
+    core.attr == '혼돈' &&
     core.type == '별' &&
     core.tier == 0
   )
