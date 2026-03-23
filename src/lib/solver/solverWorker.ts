@@ -13,6 +13,8 @@ import {
 import { getBestGemSetPacks, getMaxStat, getPossibleGemSets } from './solver';
 import type {
   SolverAdditionalGemResult,
+  SolverProgress,
+  SolverProgressStage,
   SolverRunPayload,
   SolverRunResult,
   SolverWorkerRequest,
@@ -87,12 +89,22 @@ const perfectGemsSupporter = [
   },
 ] satisfies Partial<ArkGridGem>[];
 
+const STAGE_RANGES: Record<SolverProgressStage, [number, number]> = {
+  preparing: [0, 10],
+  searching_order_packs: [10, 50],
+  searching_chaos_packs: [50, 90],
+  combining_results: [90, 95],
+  simulating_launcher_gems: [95, 99],
+  finalizing: [99, 100],
+};
+
 type PrecalculatedGspList = {
   order?: GemSetPack[];
   chaos?: GemSetPack[];
 };
 
 type StepCallback = (orderGspList: GemSetPack[], chaosGspList: GemSetPack[]) => void;
+type ProgressReporter = (progress: SolverProgress) => void;
 
 type SolveOptions = {
   isSupporter?: boolean;
@@ -190,13 +202,37 @@ function isGspNeedMoreGem(gsp: GemSetPack | null) {
   });
 }
 
+function emitProgress(
+  report: ProgressReporter | undefined,
+  stage: SolverProgressStage,
+  stagePercent: number,
+  extra?: Omit<SolverProgress, 'stage' | 'stagePercent' | 'totalPercent'>
+) {
+  if (!report) {
+    return;
+  }
+
+  const boundedStagePercent = Math.max(0, Math.min(100, stagePercent));
+  const [start, end] = STAGE_RANGES[stage];
+  const totalPercent = start + ((end - start) * boundedStagePercent) / 100;
+
+  report({
+    stage,
+    stagePercent: boundedStagePercent,
+    totalPercent,
+    ...extra,
+  });
+}
+
 function solve(
   rawOrderCores: WorkerCore[],
   rawChaosCores: WorkerCore[],
   inOrderGems: ArkGridGem[],
   inChaosGems: ArkGridGem[],
-  { isSupporter = false, perfectSolve = false, precalculatedGsp, onStep }: SolveOptions = {}
+  { isSupporter = false, perfectSolve = false, precalculatedGsp, onStep }: SolveOptions = {},
+  report?: ProgressReporter
 ): SolveResultInternal {
+  emitProgress(report, 'preparing', 0);
   const orderCores = rawOrderCores.map(toCore);
   const chaosCores = rawChaosCores.map(toCore);
 
@@ -255,24 +291,47 @@ function solve(
     }
   }
 
+  emitProgress(report, 'preparing', 100);
+  emitProgress(report, 'searching_order_packs', 0);
   const orderGspList = precalculatedGsp?.order
     ? [...precalculatedGsp.order]
-    : getBestGemSetPacks(orderGssList, scoreMaps, perfectSolve);
+    : getBestGemSetPacks(orderGssList, scoreMaps, perfectSolve, ({ current, total }) => {
+        emitProgress(report, 'searching_order_packs', (current / total) * 100, {
+          current,
+          total,
+        });
+      });
 
+  emitProgress(report, 'searching_order_packs', 100);
+  emitProgress(report, 'searching_chaos_packs', 0);
   const chaosGspList = precalculatedGsp?.chaos
     ? [...precalculatedGsp.chaos]
-    : getBestGemSetPacks(chaosGssList, scoreMaps, perfectSolve);
+    : getBestGemSetPacks(chaosGssList, scoreMaps, perfectSolve, ({ current, total }) => {
+        emitProgress(report, 'searching_chaos_packs', (current / total) * 100, {
+          current,
+          total,
+        });
+      });
 
   if (onStep) {
     onStep(orderGspList, chaosGspList);
   }
 
+  emitProgress(report, 'searching_chaos_packs', 100);
+  emitProgress(report, 'combining_results', 0);
   let answer = new GemSetPackTuple(orderGspList[0] ?? null, chaosGspList[0] ?? null, isSupporter);
   const gemSetPackSet: GemSetPack[][] = [[], []];
 
   for (const [i, gspList] of [orderGspList, chaosGspList].entries()) {
     const seen = new Set<string>();
+    const total = gspList.length;
+    let current = 0;
     for (const gsp of gspList) {
+      current += 1;
+      emitProgress(report, 'combining_results', ((i + current / Math.max(total, 1)) / 4) * 100, {
+        current,
+        total,
+      });
       const key = `${gsp.att}|${gsp.skill}|${gsp.boss}|${gsp.coreScore}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -282,7 +341,14 @@ function solve(
   }
 
   if (gemSetPackSet[0].length > 0 && gemSetPackSet[1].length > 0) {
+    const total = gemSetPackSet[0].length;
+    let current = 0;
     for (const gsp1 of gemSetPackSet[0]) {
+      current += 1;
+      emitProgress(report, 'combining_results', 50 + (current / total) * 50, {
+        current,
+        total,
+      });
       for (const gsp2 of gemSetPackSet[1]) {
         const gspt = new GemSetPackTuple(gsp1, gsp2, isSupporter);
         if (gspt.score > answer.score) {
@@ -292,6 +358,7 @@ function solve(
     }
   }
 
+  emitProgress(report, 'combining_results', 100);
   return {
     answer,
     assignedGemIndexes: [
@@ -349,7 +416,40 @@ function getPerfectScore(isSupporter: boolean) {
   );
 }
 
-function runSolve(payload: SolverRunPayload): SolverRunResult {
+function createProgressReporter(postProgress: ProgressReporter): ProgressReporter {
+  let lastTotalPercent = -1;
+  let lastStagePercent = -1;
+  let lastStage: SolverProgressStage | null = null;
+  let lastCurrent = -1;
+
+  return (progress) => {
+    const roundedTotalPercent = Math.max(0, Math.min(100, Math.round(progress.totalPercent)));
+    const roundedStagePercent = Math.max(0, Math.min(100, Math.round(progress.stagePercent)));
+    const nextCurrent = progress.current ?? -1;
+
+    if (
+      roundedTotalPercent === lastTotalPercent &&
+      roundedStagePercent === lastStagePercent &&
+      progress.stage === lastStage &&
+      nextCurrent === lastCurrent
+    ) {
+      return;
+    }
+
+    lastTotalPercent = roundedTotalPercent;
+    lastStagePercent = roundedStagePercent;
+    lastStage = progress.stage;
+    lastCurrent = nextCurrent;
+
+    postProgress({
+      ...progress,
+      totalPercent: roundedTotalPercent,
+      stagePercent: roundedStagePercent,
+    });
+  };
+}
+
+function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRunResult {
   const { orderCores, chaosCores, orderGems, chaosGems, isSupporter } = payload;
   const perfectOrderGems: ArkGridGem[] = [];
   const perfectChaosGems: ArkGridGem[] = [];
@@ -364,13 +464,20 @@ function runSolve(payload: SolverRunPayload): SolverRunResult {
   let precalculatedGspListOrder: PrecalculatedGspList | undefined;
   let precalculatedGspListChaos: PrecalculatedGspList | undefined;
 
-  const solved = solve(orderCores, chaosCores, orderGems, chaosGems, {
-    isSupporter,
-    onStep: (order, chaos) => {
-      precalculatedGspListOrder = { order };
-      precalculatedGspListChaos = { chaos };
+  const solved = solve(
+    orderCores,
+    chaosCores,
+    orderGems,
+    chaosGems,
+    {
+      isSupporter,
+      onStep: (order, chaos) => {
+        precalculatedGspListOrder = { order };
+        precalculatedGspListChaos = { chaos };
+      },
     },
-  });
+    report
+  );
 
   const answer = solved.answer;
   const score = (answer.score - 1) * 100;
@@ -387,10 +494,19 @@ function runSolve(payload: SolverRunPayload): SolverRunResult {
     혼돈: {},
   };
 
-  for (const { attr, gsp } of [
+  const simulationTargets = [
     { attr: '질서', gsp: answer.gsp1 },
     { attr: '혼돈', gsp: answer.gsp2 },
-  ] satisfies { attr: ArkGridAttr; gsp: GemSetPack | null }[]) {
+  ] satisfies { attr: ArkGridAttr; gsp: GemSetPack | null }[];
+  const shouldSimulateLauncherGems = simulationTargets.some(
+    ({ attr, gsp }) => solved.needLauncherGem[attr] && gsp
+  );
+
+  if (shouldSimulateLauncherGems) {
+    emitProgress(report, 'simulating_launcher_gems', 0);
+  }
+
+  for (const { attr, gsp } of simulationTargets) {
     if (!solved.needLauncherGem[attr] || !gsp) {
       continue;
     }
@@ -446,6 +562,11 @@ function runSolve(payload: SolverRunPayload): SolverRunResult {
     }
   }
 
+  if (shouldSimulateLauncherGems) {
+    emitProgress(report, 'simulating_launcher_gems', 100);
+  }
+  emitProgress(report, 'finalizing', 100);
+
   return {
     assignedGemIndexes: solved.assignedGemIndexes,
     gemSetPackTuple: answer,
@@ -465,9 +586,16 @@ self.onmessage = (e: MessageEvent<SolverWorkerRequest>) => {
   switch (data.type) {
     case 'runSolve':
       try {
+        const report = createProgressReporter((progress) => {
+          self.postMessage({
+            type: 'runSolve:progress',
+            progress,
+          } satisfies SolverWorkerResponse);
+        });
+
         self.postMessage({
           type: 'runSolve:done',
-          result: runSolve(data.payload),
+          result: runSolve(data.payload, report),
         } satisfies SolverWorkerResponse);
       } catch (error) {
         self.postMessage({

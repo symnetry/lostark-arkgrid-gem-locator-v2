@@ -1,5 +1,12 @@
 import { Core, Gem, GemSet, GemSetPack } from './models';
 
+export type GemSetPackProgress = {
+  current: number;
+  total: number;
+};
+
+type GemSetPackProgressCallback = (progress: GemSetPackProgress) => void;
+
 export function getMaxStat(gss: GemSet[], statType: 'att' | 'skill' | 'boss') {
   // 주어진 GemSet[]에서 가장 높은 statType의 값을 가져옵니다.
   let result = 0;
@@ -62,7 +69,8 @@ export function getPossibleGemSets(core: Core, gems: Gem[]): GemSet[] {
 export function getBestGemSetPacks(
   gssList: GemSet[][],
   scoreMaps: [number, number][][],
-  ignoreDuplication = false
+  ignoreDuplication = false,
+  onProgress?: GemSetPackProgressCallback
 ): GemSetPack[] {
   if (gssList.length > 3) throw Error('length of gsss should be one of 1, 2, 3');
   const [gss1, gss2, gss3] = gssList;
@@ -85,6 +93,11 @@ export function getBestGemSetPacks(
   if (gss2) gss2.sort((a, b) => b.maxScore - a.maxScore);
   if (gss3) gss3.sort((a, b) => b.maxScore - a.maxScore);
 
+  function emitProgress(current: number, total: number) {
+    if (!onProgress || total <= 0) return;
+    onProgress({ current, total });
+  }
+
   // 이진 검색 헬퍼 함수
   function binarySearchThreshold(gss: GemSet[], threshold: number): number {
     let left = 0;
@@ -99,6 +112,15 @@ export function getBestGemSetPacks(
       }
     }
     return left;
+  }
+
+  function estimateOuterLoopTotal(remainingMaxScoreProduct: number, current: number) {
+    if (!Number.isFinite(remainingMaxScoreProduct) || remainingMaxScoreProduct <= 0) {
+      return Math.max(current, gss1.length);
+    }
+
+    const threshold = targetMin / remainingMaxScoreProduct;
+    return Math.max(current, binarySearchThreshold(gss1, threshold));
   }
 
   const cache = new Map<bigint, Map<number, GemSet[]>>();
@@ -177,7 +199,10 @@ export function getBestGemSetPacks(
   /* 코어 2개 */
   if (gssList.length == 2) {
     const gm2 = gss2.length > 0 ? gss2[0].maxScore : 1;
+    let current = 0;
     for (const gs1 of gss1) {
+      current += 1;
+      emitProgress(current, estimateOuterLoopTotal(gm2, current));
       if (gs1.maxScore * gm2 < targetMin) break;
 
       for (const gs2 of getCandidates(gs1.bitmask, 1, targetMin / gs1.maxScore)) {
@@ -198,7 +223,10 @@ export function getBestGemSetPacks(
     const gm2 = gss2.length > 0 ? gss2[0].maxScore : 1;
     const gm3 = gss3.length > 0 ? gss3[0].maxScore : 1;
 
+    let current = 0;
     for (const gs1 of gss1) {
+      current += 1;
+      emitProgress(current, estimateOuterLoopTotal(gm2 * gm3, current));
       if (gs1.maxScore * gm2 * gm3 < targetMin) break;
       for (const gs2 of getCandidates(gs1.bitmask, 1, targetMin / (gs1.maxScore * gm3))) {
         if (gs1.maxScore * gs2.maxScore * gm3 < targetMin) break;

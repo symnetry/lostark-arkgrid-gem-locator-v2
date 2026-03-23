@@ -6,6 +6,7 @@ import {
 } from '../models/arkGridCores';
 import type { CharacterProfile } from '../state/profile.state.svelte';
 import type {
+  SolverProgress,
   SolverRunPayload,
   SolverRunResult,
   SolverWorkerRequest,
@@ -68,6 +69,7 @@ export class SolverController {
   private state: 'idle' | 'running' = 'idle';
   private worker: Worker;
   private pending: Deferred | null = null;
+  onProgress: ((progress: SolverProgress) => void) | null = null;
 
   constructor() {
     this.worker = new Worker(new URL('./solverWorker.ts', import.meta.url), {
@@ -98,6 +100,9 @@ export class SolverController {
     const data = e.data;
 
     switch (data.type) {
+      case 'runSolve:progress':
+        this.onProgress?.(data.progress);
+        break;
       case 'runSolve:done':
         this.settlePending((pending) => {
           pending.resolve(data.result);

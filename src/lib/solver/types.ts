@@ -14,6 +14,23 @@ export type SolverScoreSet = {
   perfectScore: number;
 };
 
+export type SolverProgressStage =
+  | 'preparing'
+  | 'searching_order_packs'
+  | 'searching_chaos_packs'
+  | 'combining_results'
+  | 'simulating_launcher_gems'
+  | 'finalizing';
+
+export type SolverProgress = {
+  stage: SolverProgressStage;
+  totalPercent: number;
+  stagePercent: number;
+  attr?: ArkGridAttr;
+  current?: number;
+  total?: number;
+};
+
 export type SolverAdditionalGemResult = Record<
   ArkGridAttr,
   Record<
@@ -48,6 +65,10 @@ export type SolverWorkerRequest = {
 };
 
 export type SolverWorkerResponse =
+  | {
+      type: 'runSolve:progress';
+      progress: SolverProgress;
+    }
   | {
       type: 'runSolve:done';
       result: SolverRunResult;
