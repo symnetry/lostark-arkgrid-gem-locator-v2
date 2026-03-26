@@ -1,39 +1,81 @@
-# 아크 그리드 전투력 최적화
+# 失落的方舟 - 方舟棋盘战斗力优化器
 
-## Introduction
+一个玩家自制的工具，用于优化失落的方舟中的方舟棋盘护石配置，以最大化战斗力。
+这个项目的原始地址是：[https://github.com/Airplaner/lostark-arkgrid-gem-locator-v2](https://github.com/Airplaner/lostark-arkgrid-gem-locator-v2)
+我只是在基础上添加了中文语言支持。
 
-이 프로젝트는 로스트아크 아크 그리드 시스템에서 사용자가 가진 젬을 코어에 장착했을 때 전투력을 최대화하는 최적의 조합을 탐색하는 계산 사이트입니다.
+## 功能
 
-## Key Features
-- 장착 가능한 젬 조합을 직접 비교할 필요 없이 최적의 아크 그리드 배치를 자동으로 계산
-- 화면 인식을 통한 젬 자동 입력으로 반복 작업 최소화
-- 여러 캐릭터를 프로필로 관리 가능
+1. **护石识别**：通过屏幕共享自动识别游戏中的护石
+2. **战斗力优化**：智能计算最佳护石配置
+3. **多语言支持**：支持韩语、英语和中文界面
+4. **配置管理**：保存和管理多个角色配置
+5. **结果预览**：查看优化后的战斗力提升和护石配置
 
-## Tech Stack
+## 使用方法
 
-- **Solver**: Custom backtracking with upper bound pruning (TypeScript)
-- **Frontend**: Svelte (component-based UI, local state persistence)
-- **Image Processing**: OpenCV (template matching, Web Worker)
-- **Deployment**: GitHub Pages (fully client-side)
+### 1. 准备工作
+- 打开失落的方舟游戏
+- 进入角色的方舟棋盘界面
+- 切换到未使用的预设以卸下所有护石
 
-## Technical Details
-- [Solving](docs/algorithm.md)
-- [Screen Recognition](docs/opencv.md)
+### 2. 开始使用
+1. 在浏览器中打开此工具
+2. 点击 [🖥️ 开始屏幕共享] 按钮，选择失落的方舟游戏窗口
+3. 向下滚动游戏中的护石列表，工具会自动识别所有护石
+4. 确认所有护石都已识别后，点击 [✅ 应用到当前配置]
+5. 进入优化设置页面，调整核心最小点数
+6. 点击 [执行优化] 按钮，等待计算完成
+7. 查看优化结果和建议
 
-## How to run
-### Installation
-npm을 사용하여 환경을 구성합니다.
+## 常见问题
+
+### Q: 屏幕共享失败或被拒绝
+A: 请使用 Chrome 或 Edge 浏览器，并确保已授予屏幕共享权限。
+
+### Q: 护石没有被识别
+A: 请检查以下内容：
+- 游戏分辨率设置为 1920x1080 (16:9)
+- 游戏窗口处于窗口模式
+- 没有使用强制 21:9 宽高比
+- 护石列表完全可见，没有被其他 UI 遮挡
+
+### Q: 优化结果不理想
+A: 尝试调整核心最小点数设置，或确保所有护石都已正确识别。
+
+## 技术栈
+
+- **求解器**: 带有上界剪枝的自定义回溯算法 (TypeScript)
+- **前端**: Svelte (基于组件的 UI，本地状态持久化)
+- **图像处理**: OpenCV (模板匹配，Web Worker)
+- **部署**: GitHub Pages (纯客户端)
+
+## 技术细节
+
+- [求解算法](docs/algorithm.md)
+- [屏幕识别](docs/opencv.md)
+
+## 如何运行
+
+### 安装
+
+使用 pnpm 安装依赖：
+
+```bash
+pnpm install
 ```
-npm install
+
+### 生成 OpenCV 精灵图
+
+OpenCV 模板位于 `opencv-templates/` 目录下。运行以下命令将它们合并为一个精灵图：
+
+```bash
+pnpm run generate:sprite
 ```
 
-## Generate OpenCV Sprite
-OpenCV 템플릿은 `opencv-templates/` 아래에 존재합니다.
-```
-npm run generate:sprite
-```
-해당 명령어를 통해 이들을 하나의 스프라이트로 합칠 수 있습니다. 각 어셋들의 좌표는 `lib/opencv-template-coords/` 아래와 같이 생성됩니다.
-```ts
+生成的精灵图坐标将保存在 `lib/opencv-template-coords/` 目录中：
+
+```typescript
 // THIS FILE IS AUTO-GENERATED. DO NOT MODIFY ITSELF
 export const koKrCoords = {
   ...
@@ -43,3 +85,21 @@ export const koKrCoords = {
   ...
 }
 ```
+
+## 许可证
+
+MIT License
+
+## 联系方式
+
+如有问题或建议，请通过以下方式联系：
+- Discord: [链接](https://discord.gg/Zk4K3xt9ub)
+- KakaoTalk: [链接](https://open.kakao.com/o/s5bTYodi)
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+---
+
+**注意**: 这是一个非官方工具，与 Smilegate RPG 或 Amazon Games 无关。
