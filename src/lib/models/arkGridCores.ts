@@ -9,18 +9,21 @@ export const ArkGridCoreTypeTypes = {
     name: {
       ko_kr: '해',
       en_us: 'Sun',
+      zh_cn: '日',
     },
   },
   달: {
     name: {
       ko_kr: '달',
       en_us: 'Moon',
+      zh_cn: '月',
     },
   },
   별: {
     name: {
       ko_kr: '별',
       en_us: 'Star',
+      zh_cn: '星',
     },
   },
 } as const satisfies Record<string, ArkGridCoreTypeType>;

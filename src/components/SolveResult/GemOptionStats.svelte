@@ -30,6 +30,7 @@
     {
       ko_kr: '젬 옵션',
       en_us: 'Astrogem Options',
+      zh_cn: '护石选项',
     }[locale]
   );
 </script>

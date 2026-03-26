@@ -24,10 +24,12 @@
   const LTitle: LocalizationName = {
     ko_kr: '젬 추가',
     en_us: 'Add',
+    zh_cn: '添加',
   };
   const LGemAddResult: LocalizationName = {
     ko_kr: '젬 추가 완료',
     en_us: 'Astrogem Added',
+    zh_cn: '护石已添加',
   };
   let dialog: HTMLDialogElement;
 

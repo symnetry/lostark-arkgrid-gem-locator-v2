@@ -59,12 +59,14 @@
   function clearGemWithConfirm() {
     if (!window.confirm(LResetConfirm)) return;
     clearGems();
-    toast.push(LResetDone);
+    const doneMsg = LResetDone;
+    if (doneMsg) toast.push(doneMsg);
   }
   const LTitle = $derived(
     {
       ko_kr: '젬 목록',
       en_us: 'Astrogems',
+      zh_cn: '护石列表',
     }[locale]
   );
   const LGemTotalCount = $derived(
@@ -72,36 +74,42 @@
       ko_kr: `젬 보유 수량 ${gems.orderGems.length + gems.chaosGems.length} / 100<br>(질서 ${gems.orderGems.length}개, 혼돈 ${gems.chaosGems.length}개
     보유 중)`,
       en_us: `Astrogems Owned: ${gems.orderGems.length + gems.chaosGems.length} / 100<br>(Order ${gems.orderGems.length}, Chaos ${gems.chaosGems.length} owned)`,
+      zh_cn: `护石持有数量 ${gems.orderGems.length + gems.chaosGems.length} / 100<br>(秩序 ${gems.orderGems.length}个，混沌 ${gems.chaosGems.length}个持有中)`,
     }[locale]
   );
   const LEmpty = $derived(
     {
       ko_kr: '인식된 젬이 없습니다.',
       en_us: 'No astrogems owned',
+      zh_cn: '没有识别到护石。',
     }[locale]
   );
   const LDeleteGem = $derived(
     {
       ko_kr: '젬 삭제',
       en_us: 'Delete',
+      zh_cn: '删除',
     }[locale]
   );
   const LReset = $derived(
     {
       ko_kr: '전체 초기화',
       en_us: 'Reset',
+      zh_cn: '全部重置',
     }[locale]
   );
   const LResetConfirm = $derived(
     {
       ko_kr: '현재 프로필의 모든 젬을 삭제합니다. 진행하시겠습니까?',
       en_us: 'This will delete all astrogems in the current profile. Do you want to proceed?',
+      zh_cn: '将删除当前配置中的所有护石。确定要继续吗？',
     }[locale]
   );
   const LResetDone = $derived(
     {
       ko_kr: '젬 삭제 완료',
       en_us: 'Astrogems reset',
+      zh_cn: '护石已重置',
     }[locale]
   );
 </script>

@@ -38,12 +38,14 @@
     {
       ko_kr: '포인트',
       en_us: 'Points',
+      zh_cn: '点数',
     }[locale]
   );
   const LCosts = $derived(
     {
       ko_kr: '의지력',
       en_us: 'Costs',
+      zh_cn: '消耗',
     }[locale]
   );
 </script>

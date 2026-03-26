@@ -23,22 +23,27 @@
   const LTitle: LocalizationName = {
     ko_kr: '인식된 젬 목록',
     en_us: 'Recognized Astrogems',
+    zh_cn: '已识别的护石列表',
   };
   const LEmpty: LocalizationName = {
     ko_kr: '인식된 젬이 없습니다.',
     en_us: 'No astrogems detected',
+    zh_cn: '未检测到护石',
   };
   const LApply: LocalizationName = {
     ko_kr: '현재 프로필에 반영',
     en_us: 'Apply to Current Profile',
+    zh_cn: '应用到当前配置',
   };
   const LReset: LocalizationName = {
     ko_kr: '초기화',
     en_us: 'Reset',
+    zh_cn: '重置',
   };
   const LConfirm: LocalizationName = {
     ko_kr: '반영 완료',
     en_us: 'Astrogems applied',
+    zh_cn: '护石已应用',
   };
   const LWarning: LocalizationName = {
     ko_kr:
@@ -49,6 +54,10 @@
       '⚠️ Astrogems already exist in the current profile.\n' +
       'Do you want to delete all existing astrogems and overwrite them?\n' +
       'If you cancel, the recognized astrogems will only be added.',
+    zh_cn:
+      '⚠️当前配置中已有护石。\n' +
+      '是否要删除所有现有护石并覆盖？\n' +
+      '如取消，只会添加已识别的护石。',
   };
   let container: ArkGridGemList;
   let orderGems = $derived(gems.orderGems);
@@ -59,6 +68,7 @@
     ko_kr: `젬 보유 수량 ${orderGems.length + chaosGems.length} / 100<br>(질서 ${orderGems.length}개, 혼돈 ${chaosGems.length}개
     보유 중)`,
     en_us: `Astrogems Owned: ${orderGems.length + chaosGems.length} / 100<br>(Order ${orderGems.length}, Chaos ${chaosGems.length} owned)`,
+    zh_cn: `护石持有量 ${orderGems.length + chaosGems.length} / 100<br>(秩序 ${orderGems.length}个，混沌 ${chaosGems.length}个)`,
   });
   // 탭 상태
   let activeTab = $state(0);

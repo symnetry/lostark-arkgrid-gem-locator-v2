@@ -17,24 +17,28 @@
     {
       ko_kr: '아크 그리드 전투력',
       en_us: 'Ark Grid Combat Power',
+      zh_cn: '方舟棋盘战斗力',
     }[locale]
   );
   const LCurrent = $derived(
     {
       ko_kr: '현재 전투력 증가량',
       en_us: 'Current CP',
+      zh_cn: '当前战斗力提升',
     }[locale]
   );
   const LCurrentDesc = $derived(
     {
       ko_kr: '최적화된 젬 장착 상태에서 아크 그리드로 증가된 전투력 %입니다.',
       en_us: 'This shows the Combat Power increase (%) from your cores and optimized astrogems.',
+      zh_cn: '这显示在优化的护石装备状态下，方舟棋盘提供的战斗力提升（%）。',
     }[locale]
   );
   const LMaximum = $derived(
     {
       ko_kr: '전투력 증가 한계',
       en_us: 'Maximum CP Potential',
+      zh_cn: '最大战斗力提升',
     }[locale]
   );
   const LMaxDesc = $derived(
@@ -44,18 +48,23 @@
       en_us:
         'This shows the Combat Power increase could reach with ideal astrogems using your current cores. ' +
         'A smaller gap means you have more high-quality astrogems.',
+      zh_cn:
+        '这显示使用当前核心，装备理想护石时可以达到的战斗力提升。' +
+        '差距越小，说明你拥有的护石质量越高。',
     }[locale]
   );
   const LTotalScore = $derived(
     {
       ko_kr: '부옵작 점수',
       en_us: 'Astrogem Score',
+      zh_cn: '护石评分',
     }[locale]
   );
   const LTotalScoreDesc = $derived(
     {
       ko_kr: '현재 전투력 증가량을 전투력 증가 한계로 나눠 부옵작을 점수화한 값입니다.',
       en_us: 'This shows the value calculated by dividing Current CP by Maximum CP Potential.',
+      zh_cn: '这是当前战斗力提升除以最大战斗力提升得到的评分值。',
     }[locale]
   );
 </script>

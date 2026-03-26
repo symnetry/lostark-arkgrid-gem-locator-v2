@@ -21,6 +21,7 @@
   const LTitle: LocalizationName = {
     ko_kr: '코어 설정',
     en_us: 'Core Setting',
+    zh_cn: '核心设置',
   };
 
   let cores = $derived(profile.cores);
@@ -28,14 +29,17 @@
   const LSwitchRole = $derived({
     ko_kr: `${isSupporter ? LDealeer.ko_kr : LSupporter.ko_kr}로 전환`,
     en_us: `Switch to ${isSupporter ? LDealeer.en_us : LSupporter.en_us}`,
+    zh_cn: `切换到${isSupporter ? LDealeer.zh_cn : LSupporter.zh_cn}`,
   });
   const LShowCoeff: LocalizationName = {
     ko_kr: '전투력 계수 보기',
     en_us: 'Display Core Coeff.',
+    zh_cn: '显示核心系数',
   };
   const LHideCoeff: LocalizationName = {
     ko_kr: '전투력 계수 숨김',
     en_us: 'Hide Core Coeff.',
+    zh_cn: '隐藏核心系数',
   };
 
   const attrs = Object.values(ArkGridAttrs);

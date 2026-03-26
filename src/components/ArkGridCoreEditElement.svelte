@@ -35,6 +35,18 @@
             달: ['낙인의 흔적', '강철의/치명적인 흔적', '그 외'],
             별: ['무기', '생명', '그 외'],
           };
+    } else if (locale == 'zh_cn') {
+      return !isSupporter
+        ? {
+            해: ['炫目的攻击', '稳定/快速的攻击', '其他'],
+            달: ['燃烧的一击', '吸收/粉碎的一击', '其他'],
+            별: ['攻击', '武器', '其他'],
+          }
+        : {
+            해: ['信念强化', '流动的魔力/不屈的强化', '其他'],
+            달: ['烙印的痕迹', '钢铁的/致命的痕迹', '其他'],
+            별: ['武器', '生命', '其他'],
+          };
     } else {
       return !isSupporter
         ? {
@@ -57,18 +69,21 @@
     {
       ko_kr: '등급',
       en_us: 'Rarity',
+      zh_cn: '品质',
     }[locale]
   );
   const LCoretypes = $derived(
     {
       ko_kr: '종류',
       en_us: 'Type',
+      zh_cn: '类型',
     }[locale]
   );
   const LCoeff = $derived(
     {
       ko_kr: '계수',
       en_us: 'Coeff.',
+      zh_cn: '系数',
     }[locale]
   );
 </script>

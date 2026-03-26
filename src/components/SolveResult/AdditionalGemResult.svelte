@@ -60,6 +60,7 @@
     {
       ko_kr: '젬 추가 시뮬레이션',
       en_us: 'Next Astrogem Preview',
+      zh_cn: '追加护石预览',
     }[locale]
   );
   const LAttr = { 질서: LOrder, 혼돈: LChaos };
@@ -69,24 +70,29 @@
         '17P를 달성하지 못한 사용자들을 위해 하나의 젬을 추가로 가공했을 때 가능한 배치들을 보여줍니다. ',
       en_us:
         'This shows the possible combinations when an additional astrogem is added for users who have not reached 17P. ',
+      zh_cn:
+        '这向未达到17P的用户显示，当额外加工一个护石时可能的组合。',
     }[locale]
   );
   const LCurrentPoints = $derived(
     {
       ko_kr: '현재 코어 포인트',
       en_us: 'Current Core Points',
+      zh_cn: '当前核心点数',
     }[locale]
   );
   const LMaximumPoint = $derived(
     {
       ko_kr: '최대 포인트에 도달하였습니다.',
       en_us: 'Maximum Points Reached.',
+      zh_cn: '已达到最大点数。',
     }[locale]
   );
   const LCannotSucceedWithOneGem = $derived(
     {
       ko_kr: '한 개의 추가 젬만으로는 다음 단계를 달성할 수 없습니다.',
       en_us: 'You cannot reach the next stage with only one additional astrogem.',
+      zh_cn: '仅追加一个护石无法达到下一阶段。',
     }[locale]
   );
 </script>

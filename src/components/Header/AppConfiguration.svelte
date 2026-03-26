@@ -43,14 +43,17 @@
   const LDarkMode: LocalizationName = {
     ko_kr: '다크 모드',
     en_us: 'Dark Mode',
+    zh_cn: '暗黑模式',
   };
   const LOpenAPIConfig: LocalizationName = {
     ko_kr: 'OpenAPI 설정',
     en_us: 'Config OpenAPI',
+    zh_cn: 'OpenAPI 设置',
   };
   const LOpenAPIApply: LocalizationName = {
     ko_kr: 'OpenAPI 데이터 반영',
     en_us: 'Fetch from OpenAPI',
+    zh_cn: '从 OpenAPI 获取数据',
   };
 
   function parseOpenApiGem(gem: LostArkOpenAPI.ArkGridGem): ArkGridGem {

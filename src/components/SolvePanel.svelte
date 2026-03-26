@@ -32,48 +32,56 @@
     {
       ko_kr: '최적화 설정',
       en_us: 'Optimization Settings',
+      zh_cn: '优化设置',
     }[locale]
   );
   const LSubtitle = $derived(
     {
       ko_kr: '코어별 최소 포인트 설정',
       en_us: 'Minimum Core Points',
+      zh_cn: '核心最小点数设置',
     }[locale]
   );
   const LRunSolve = $derived(
     {
       ko_kr: '최적화 실행',
       en_us: 'Run Optimization',
+      zh_cn: '执行优化',
     }[locale]
   );
   const LRunning = $derived(
     {
       ko_kr: '계산 중...',
       en_us: 'Optimizing...',
+      zh_cn: '正在优化...',
     }[locale]
   );
   const LProgressTitle = $derived(
     {
       ko_kr: '진행 상황',
       en_us: 'Optimization Progress',
+      zh_cn: '优化进度',
     }[locale]
   );
   const LFailed = $derived(
     {
       ko_kr: '목표 포인트를 조절해보세요.',
       en_us: 'Please adjust the minimum core points.',
+      zh_cn: '请调整最小核心点数。',
     }[locale]
   );
   const LOrderFailed = $derived(
     {
       ko_kr: '질서 배치 실패',
       en_us: 'Order cores optimization failed',
+      zh_cn: '秩序核心优化失败',
     }[locale]
   );
   const LChaosFailed = $derived(
     {
       ko_kr: '혼돈 배치 실패',
       en_us: 'Chaos cores optimization failed',
+      zh_cn: '混沌核心优化失败',
     }[locale]
   );
 
@@ -165,6 +173,14 @@
         simulating_launcher_gems: 'Simulating Next Astrogem Preview',
         finalizing: 'Finalizing result',
       },
+      zh_cn: {
+        preparing: '准备输入中',
+        searching_order_packs: '搜索秩序最佳组合中',
+        searching_chaos_packs: '搜索混沌最佳组合中',
+        combining_results: '综合两个组合搜索最佳解中',
+        simulating_launcher_gems: '追加护石模拟中',
+        finalizing: '整理结果中',
+      },
     };
     const baseLabel = LProgressStage[locale][progress.stage];
 
@@ -172,16 +188,21 @@
       return baseLabel;
     }
 
-    const attrLabel = {
-      ko_kr: {
-        질서: '질서',
-        혼돈: '혼돈',
-      },
-      en_us: {
-        질서: 'Order',
-        혼돈: 'Chaos',
-      },
-    }[locale][progress.attr ?? '질서'];
+    const attrLabel =
+      {
+        ko_kr: {
+          질서: '질서',
+          혼돈: '혼돈',
+        },
+        en_us: {
+          질서: 'Order',
+          혼돈: 'Chaos',
+        },
+        zh_cn: {
+          질서: '秩序',
+          혼돈: '混沌',
+        },
+      }[locale]?.[progress.attr ?? '질서'] || '';
 
     return `${baseLabel} (${attrLabel} ${progress.current}/${progress.total})`;
   }

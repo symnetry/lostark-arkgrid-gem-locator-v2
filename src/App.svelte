@@ -16,6 +16,7 @@
   const LTitle: LocalizationName = {
     ko_kr: '아크 그리드 전투력 최적화',
     en_us: 'Ark Grid Combat Power Optimizer',
+    zh_cn: '方舟棋盘战斗力优化器',
   };
   let currentProfile = $state<CharacterProfile>(getCurrentProfile());
   $effect(() => {
@@ -57,6 +58,8 @@
     const lang = navigator.language.toLowerCase(); // 예: 'ko-KR' 또는 'en-US'
     if (lang.startsWith('ko')) {
       setLocale('ko_kr');
+    } else if (lang.startsWith('zh')) {
+      setLocale('zh_cn');
     } else {
       setLocale('en_us');
     }
@@ -65,6 +68,7 @@
     {
       ko_kr: '아크 그리드 전투력 최적화',
       en_us: 'Ark Grid Combat Power Optimizer',
+      zh_cn: '方舟棋盘战斗力优化器',
     }[appLocale.current]
   );
 </script>

@@ -17,47 +17,57 @@
   const LTitle: LocalizationName = {
     ko_kr: '젬 화면 인식',
     en_us: 'Astrogem Recognition Screen',
+    zh_cn: '护石界面识别',
   };
   const LStartCapture: LocalizationName = {
     ko_kr: '화면 공유 시작',
     en_us: 'Start Screen Sharing',
+    zh_cn: '开始屏幕共享',
   };
   const LStopCapture: LocalizationName = {
     ko_kr: '화면 공유 종료',
     en_us: 'Stop Screen Sharing',
+    zh_cn: '停止屏幕共享',
   };
   const LShowScreen: LocalizationName = {
     ko_kr: '공유 중인 화면 보기',
     en_us: 'Display Sharing Screen',
+    zh_cn: '显示共享屏幕',
   };
   const LHideScreen: LocalizationName = {
     ko_kr: '공유 중인 화면 끄기',
     en_us: 'Hide Sharing Screen',
+    zh_cn: '隐藏共享屏幕',
   };
   const LThreshold: LocalizationName = {
     ko_kr: '허용 오차 범위',
     en_us: 'Recongition Tolerance Range',
+    zh_cn: '识别容差范围',
   };
   const LDetectionMargin = {
     ko_kr: ['일반', '여유', '최대'],
     en_us: ['Normal', 'Sparse', 'Maximum'],
+    zh_cn: ['普通', '宽松', '最大'],
   };
   const LFirefoxNotSupported = $derived(
     {
       ko_kr: '파이어폭스 브라우저는 지원하지 않습니다. 크롬 혹은 엣지 브라우저를 이용해주세요.',
       en_us: 'Sorry, Firefox broswer is not supported. Please use Chromium browser.',
+      zh_cn: '抱歉，不支持 Firefox 浏览器。请使用 Chrome 或 Edge 浏览器。',
     }[locale]
   );
   const LSupportedClient = $derived(
     {
       ko_kr: '지원 클라이언트: 한국어, 영어, 러시아어 (Beta)',
       en_us: 'Supported Clients: Korean, English, Russian (Beta)',
+      zh_cn: '支持客户端：韩语、英语、俄语（测试版）',
     }[locale]
   );
   const LControllerLazyLoading = $derived(
     {
       ko_kr: '화면 공유시 튕김 방지',
       en_us: 'Prevent Screen Sharing Crash',
+      zh_cn: '防止屏幕共享崩溃',
     }[locale]
   );
   let debugCanvas: HTMLCanvasElement | null;

@@ -24,70 +24,82 @@
     {
       ko_kr: '프로필',
       en_us: 'Profile',
+      zh_cn: '配置',
     }[locale]
   );
   const LAddNewProfile = $derived(
     {
       ko_kr: '새 프로필에 사용할 캐릭터명을 입력해주세요.',
       en_us: 'Enter a name for the new profile.',
+      zh_cn: '请输入新配置使用的角色名称。',
     }[locale]
   );
   const LNewProfile = $derived(
     {
       ko_kr: '프로필 추가',
       en_us: 'Create Profile',
+      zh_cn: '创建配置',
     }[locale]
   );
   const LConfirmDeleteProfile: Record<string, (profileName: string) => string> = {
     ko_kr: (name) => `"${name}" 프로필을 삭제하시겠습니까?`,
     en_us: (name) => `Are you sure you want to delete the "${name}" profile?`,
+    zh_cn: (name) => `确定要删除配置"${name}"吗？`,
   };
   const LDeleteProfile = $derived(
     {
       ko_kr: '현재 프로필 삭제',
       en_us: 'Delete current profile',
+      zh_cn: '删除当前配置',
     }[locale]
   );
   const LEditProfile = $derived(
     {
       ko_kr: '현재 프로필 수정',
       en_us: 'Edit current profile',
+      zh_cn: '编辑当前配置',
     }[locale]
   );
   const LEditProfileMsg = $derived(
     {
       ko_kr: '변경할 프로필 이름을 입력해주세요.',
       en_us: 'Enter a new name for the profile.',
+      zh_cn: '请输入新的配置名称。',
     }[locale]
   );
   const LEditProfileFailedMsg = $derived(
     {
       ko_kr: '중복된 프로필 이름이 존재합니다.',
       en_us: 'A profile with this name already exists.',
+      zh_cn: '已存在相同名称的配置。',
     }[locale]
   );
   const LExportProfile = $derived(
     {
       ko_kr: '프로필 내보내기 (JSON)',
       en_us: 'Export current profile as JSON',
+      zh_cn: '导出配置 (JSON)',
     }[locale]
   );
   const LImportProfile = $derived(
     {
       ko_kr: '프로필 불러오기 (JSON)',
       en_us: 'Import profile from JSON',
+      zh_cn: '导入配置 (JSON)',
     }[locale]
   );
   const LImportProfileFailedMsgDuplicated = $derived(
     {
       ko_kr: '중복된 프로필 이름이 존재합니다.',
       en_us: 'A profile with this name already exists.',
+      zh_cn: '已存在相同名称的配置。',
     }[locale]
   );
   const LImportProfileFailedMsgWrongFormat = $derived(
     {
       ko_kr: '올바르지 않은 프로필 파일입니다.',
       en_us: 'Failed to import the profile file due to an invalid file format.',
+      zh_cn: '配置文件格式不正确。',
     }[locale]
   );
 </script>

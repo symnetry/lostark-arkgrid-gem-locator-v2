@@ -8,36 +8,42 @@ export const ArkGridGemOptionTypes = {
     name: {
       ko_kr: '공격력',
       en_us: 'Atk. Power',
+      zh_cn: '攻击力',
     },
   },
   '보스 피해': {
     name: {
       ko_kr: '보스 피해',
       en_us: 'Boss Damage',
+      zh_cn: '首领伤害',
     },
   },
   '추가 피해': {
     name: {
       ko_kr: '추가 피해',
       en_us: 'Additional Damage',
+      zh_cn: '追加伤害',
     },
   },
   낙인력: {
     name: {
       ko_kr: '낙인력',
       en_us: 'Brand Power',
+      zh_cn: '烙印力',
     },
   },
   '아군 공격 강화': {
     name: {
       ko_kr: '아군 공격 강화',
       en_us: 'Ally Attack Enh.',
+      zh_cn: '友军攻击强化',
     },
   },
   '아군 피해 강화': {
     name: {
       ko_kr: '아군 피해 강화',
       en_us: 'Ally Damage Enh.',
+      zh_cn: '友军伤害强化',
     },
   },
 } as const satisfies Record<string, ArkGridGemOptionType>;
@@ -56,6 +62,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '질서의 젬 : 안정',
       en_us: 'Order Astrogem: Stability',
+      zh_cn: '秩序护石：稳定',
     },
     req: 8,
     availableOptions: ['공격력', '추가 피해', '낙인력', '아군 피해 강화'],
@@ -65,6 +72,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '질서의 젬 : 견고',
       en_us: 'Order Astrogem: Solidity',
+      zh_cn: '秩序护石：坚固',
     },
     req: 9,
     availableOptions: ['공격력', '보스 피해', '아군 피해 강화', '아군 공격 강화'],
@@ -74,6 +82,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '질서의 젬 : 불변',
       en_us: 'Order Astrogem: Immutability',
+      zh_cn: '秩序护石：永恒',
     },
     req: 10,
     availableOptions: ['추가 피해', '보스 피해', '낙인력', '아군 공격 강화'],
@@ -83,6 +92,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '혼돈의 젬 : 침식',
       en_us: 'Chaos Astrogem: Corrosion',
+      zh_cn: '混沌护石：侵蚀',
     },
     req: 8,
     availableOptions: ['공격력', '추가 피해', '낙인력', '아군 피해 강화'],
@@ -92,6 +102,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '혼돈의 젬 : 왜곡',
       en_us: 'Chaos Astrogem: Distortion',
+      zh_cn: '混沌护石：扭曲',
     },
     req: 9,
     availableOptions: ['공격력', '보스 피해', '아군 피해 강화', '아군 공격 강화'],
@@ -101,6 +112,7 @@ export const ArkGridGemSpecs = {
     name: {
       ko_kr: '혼돈의 젬 : 붕괴',
       en_us: 'Chaos Astrogem: Destruction',
+      zh_cn: '混沌护石：崩溃',
     },
     req: 10,
     availableOptions: ['추가 피해', '보스 피해', '낙인력', '아군 공격 강화'],
