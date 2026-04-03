@@ -33,4 +33,4 @@ export const ruCnCoords = {
 
 export type RuCnTemplateName = keyof typeof ruCnCoords;
 
-export const ruCnFileName = 'opencv_template_ru_cn_1775198612379.png';
+export const ruCnFileName = 'opencv_template_ru_cn_1775200131074.png';

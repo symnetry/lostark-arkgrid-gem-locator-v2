@@ -106,6 +106,7 @@
 
   let _captureController: CaptureController | null = null;
   let _prevGem: string | null = null;
+  let _lastAddedGemSequence: string | null = null;
 
   async function getCaptureController() {
     if (_captureController) return _captureController;
@@ -132,12 +133,18 @@
       for (const gem of currentGems) {
         totalGems.push(gem);
       }
+      _lastAddedGemSequence = gemKey;
       gemListElem?.selectTab(gemAttr == '질서' ? 0 : 1);
       gemListElem?.scroll('bottom');
       // console.log($state.snapshot(totalGems));
     } else {
       if (currentGems.length == 9 && totalGems.length < 100) {
         // 정상적으로 9개의 젬이 모두 인식된 경우에만 진행
+
+        // 如果这个序列刚刚添加过，跳过以防止重复
+        if (_lastAddedGemSequence === gemKey) {
+          return;
+        }
 
         // Q. 내 화면의 첫 젬이 전체 젬의 어디에 위치하는가?
         // 동일한 옵션의 젬이 2개 이상 있는 경우를 위해 후보를 모두 저장함
@@ -147,8 +154,9 @@
             foundIndices.push(i);
           }
         }
-        // 아까 조사한 모든 index에 대해서
-        // 현재 화면 중 몇 개의 젬이 이미 알고있는 젬인지 연속적으로 확인
+        
+        // 找到最佳匹配（匹配数量最多的那个）
+        let bestMatch: { index: number; count: number } | null = null;
         for (let foundIndex of foundIndices) {
           let sameCount = 1;
           for (let i = 1; i < currentGems.length; i++) {
@@ -159,35 +167,62 @@
               break;
             }
           }
+          
+          if (!bestMatch || sameCount > bestMatch.count) {
+            bestMatch = { index: foundIndex, count: sameCount };
+          }
+        }
+
+        // 只使用最佳匹配进行添加
+        if (bestMatch) {
+          const { index: foundIndex, count: sameCount } = bestMatch;
+          
           // 현재 화면에 있는 모든 젬이 이미 연속적으로 추가된 젬인 경우, 그냥 넘어감
-          if (sameCount == 9) continue;
+          if (sameCount == 9) {
+            return;
+          }
 
           // 스크롤을 너무 빠르게 내린 경우를 제외하기 위해서
           // 내 화면에 있는 젬 중 최소한 4개는 이미 알고 있는 경우에만 수행
           // 추가로 동일한 옵션의 젬을 오판정한 index인 경우 sameCount = 1이라서 걸러야 함
           if (sameCount >= SAME_COUNT_THRESHOLD) {
-            // 내 화면의 sameCount부터 끝에 있는 젬들까지 추가 대상임
+            // 检查是否真的有新护石需要添加
+            let hasNewGems = false;
             for (let i = sameCount; i < 9; i++) {
-              totalGems.push(currentGems[i]);
-              // console.log('추가:', currentGems[i]);
+              if (foundIndex + i >= totalGems.length || 
+                  !isSameArkGridGem(totalGems[foundIndex + i], currentGems[i])) {
+                hasNewGems = true;
+                break;
+              }
             }
-            gemListElem?.selectTab(gemAttr == '질서' ? 0 : 1);
-            gemListElem?.scroll('bottom');
-            // console.log($state.snapshot(totalGems));
+            
+            if (hasNewGems) {
+              // 내 화면의 sameCount부터 끝에 있는 젬들까지 추가 대상임
+              for (let i = sameCount; i < 9; i++) {
+                totalGems.push(currentGems[i]);
+                // console.log('추가:', currentGems[i]);
+              }
+              _lastAddedGemSequence = gemKey;
+              gemListElem?.selectTab(gemAttr == '질서' ? 0 : 1);
+              gemListElem?.scroll('bottom');
+              // console.log($state.snapshot(totalGems));
+            }
           }
         }
 
         if (foundIndices.length == 0) {
           // 만약 내 화면의 첫 젬이 아예 없다면 거꾸로 스크롤하는 것이라고 가정
           // 마지막 젬이 알고 있는지 확인
+          let reverseFoundIndices: number[] = [];
           for (let i = 0; i < totalGems.length; i++) {
             if (isSameArkGridGem(totalGems[i], currentGems[8])) {
-              foundIndices.push(i);
+              reverseFoundIndices.push(i);
             }
           }
-          // 아까 조사한 모든 index에 대해서
-          // 현재 화면 중 몇 개의 젬이 이미 알고있는 젬인지 연속적으로 확인
-          for (let foundIndex of foundIndices) {
+          
+          // 找到反向滚动的最佳匹配
+          let bestReverseMatch: { index: number; count: number } | null = null;
+          for (let foundIndex of reverseFoundIndices) {
             let sameCount = 1;
             for (let i = 1; i < currentGems.length; i++) {
               if (foundIndex - i < 0) break;
@@ -197,16 +232,41 @@
                 break;
               }
             }
-            if (sameCount == 9) continue;
+            
+            if (!bestReverseMatch || sameCount > bestReverseMatch.count) {
+              bestReverseMatch = { index: foundIndex, count: sameCount };
+            }
+          }
+          
+          if (bestReverseMatch) {
+            const { index: foundIndex, count: sameCount } = bestReverseMatch;
+            
+            if (sameCount == 9) {
+              return;
+            }
+            
             if (sameCount >= SAME_COUNT_THRESHOLD) {
-              // 내 화면의 0부터 9-sameCount-1에 있는 젬들까지 추가 대상임
-              for (let i = 9 - sameCount - 1; i >= 0; i--) {
-                totalGems.unshift(currentGems[i]);
-                // console.log('추가:', currentGems[i]);
+              // 检查是否真的有新护石需要添加
+              let hasNewGems = false;
+              for (let i = 0; i < 9 - sameCount; i++) {
+                if (foundIndex - (9 - sameCount - 1 - i) < 0 || 
+                    !isSameArkGridGem(totalGems[foundIndex - (9 - sameCount - 1 - i)], currentGems[i])) {
+                  hasNewGems = true;
+                  break;
+                }
               }
-              gemListElem?.selectTab(gemAttr == '질서' ? 0 : 1);
-              gemListElem?.scroll('top');
-              // console.log($state.snapshot(totalGems));
+              
+              if (hasNewGems) {
+                // 내 화면의 0부터 9-sameCount-1에 있는 젬들까지 추가 대상임
+                for (let i = 9 - sameCount - 1; i >= 0; i--) {
+                  totalGems.unshift(currentGems[i]);
+                  // console.log('추가:', currentGems[i]);
+                }
+                _lastAddedGemSequence = gemKey;
+                gemListElem?.selectTab(gemAttr == '질서' ? 0 : 1);
+                gemListElem?.scroll('top');
+                // console.log($state.snapshot(totalGems));
+              }
             }
           }
         }

@@ -107,7 +107,7 @@ class FrameProcessor {
       willPower: { x: 62, y: -2, width: 24, height: 32 },
       corePoint: { x: 62, y: 28, width: 24, height: 32 },
       optionName: { x: 118, y: -2, width: 220, height: 34 },
-      optionLevel: { gapX: 4, fallbackX: 52, width: 72, height: 34 },
+      optionLevel: { gapX: -2, fallbackX: 46, width: 56, height: 34 },
       optionYOffset: { top: 0, bottom: 30 },
     };
   }
@@ -132,7 +132,6 @@ class FrameProcessor {
   }
 
   private getOptionLevelXOffset(
-    locale: GemRecognitionLocale,
     layout: RecognitionLayout,
     optionNameRoi: RecognitionRect,
     optionName: MatchingResult<KeyOptionString> | null
@@ -140,8 +139,14 @@ class FrameProcessor {
     if (!optionName) return layout.optionLevel.fallbackX;
 
     const optionNameXOffset = optionName.loc.x - optionNameRoi.x + optionName.template.cols;
-    const gapX = locale === 'zh_cn' ? 4 : layout.optionLevel.gapX;
-    return optionNameXOffset + gapX;
+    return optionNameXOffset + layout.optionLevel.gapX;
+  }
+
+  private getOptionLevelThreshold(locale: GemRecognitionLocale, detectionMargin: number) {
+    if (locale === 'zh_cn') {
+      return 0.72 - detectionMargin;
+    }
+    return this.thresholdSet.optionLevel - detectionMargin;
   }
 
   async init() {
@@ -458,12 +463,7 @@ class FrameProcessor {
             }
           }
 
-          const optionLevelXOffset = this.getOptionLevelXOffset(
-            currentLocale,
-            layout,
-            optionNameRoi,
-            optionName
-          );
+          const optionLevelXOffset = this.getOptionLevelXOffset(layout, optionNameRoi, optionName);
 
           const optionLevel = this.findBest(
             {
@@ -474,7 +474,7 @@ class FrameProcessor {
                 height: layout.optionLevel.height,
               },
               atlas: this.loadedAsset.atlasOptionLevel[currentLocale],
-              threshold: this.thresholdSet.optionLevel - detectionMargin,
+              threshold: this.getOptionLevelThreshold(currentLocale, detectionMargin),
             },
             resizedFrame,
             debugCtx
