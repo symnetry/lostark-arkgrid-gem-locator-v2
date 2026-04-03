@@ -330,8 +330,11 @@
   function registerHashAtPosition(pos: number, hash: string): void {
     if (!hash) return;
     const list = _posSeenHashes.get(pos);
-    if (list) list.push(hash);
-    else _posSeenHashes.set(pos, [hash]);
+    if (list) {
+      list.push(hash);
+      // 防止无界增长：每个位置最多保留最近 50 条哈希记录
+      if (list.length > 50) list.shift();
+    } else _posSeenHashes.set(pos, [hash]);
   }
 
   // ==================== UI事件处理 ====================

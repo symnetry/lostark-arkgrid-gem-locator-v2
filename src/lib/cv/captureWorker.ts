@@ -78,6 +78,9 @@ class FrameProcessor {
     optionName: 0.8,
     optionLevel: 0.8,
   };
+
+  /** dHash 复用缓冲区（避免每帧 new Array(4096)） */
+  private _dHashBuffer: Float64Array = new Float64Array(64 * 64);
   constructor() {
     const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) throw new Error('2D context not available!');
@@ -275,7 +278,7 @@ class FrameProcessor {
 
       // 使用 64x64 分辨率（4096位哈希），高精度区分韩文选项名
       const HASH_SIZE = 64;
-      const grayPixels: number[] = new Array(HASH_SIZE * HASH_SIZE);
+      const grayPixels = this._dHashBuffer; // 复用缓冲区，避免每帧 new Array
 
       // 缩放到 HASH_SIZE x HASH_SIZE（中心点采样）
       for (let gy = 0; gy < HASH_SIZE; gy++) {

@@ -2,12 +2,12 @@ import type { MinMaxLoc } from '@techstark/opencv-js';
 
 import type { MatchingAtlas } from './atlas';
 import { getCv } from './cvRuntime';
-import type { CvMat, CvPoint, CvRect } from './types';
+import type { CvMat, CvRect } from './types';
 
 export type MatchingResult<K extends string> = {
   key: K;
   score: number;
-  loc: CvPoint;
+  loc: { x: number; y: number };
   template: CvMat;
 };
 
@@ -34,7 +34,7 @@ export function getBestMatchAtlas<K extends string>(
       return {
         key,
         score: mm.maxVal,
-        loc: mm.maxLoc,
+        loc: { x: mm.maxLoc.x, y: mm.maxLoc.y },
         template: e.template,
       };
     }
@@ -101,10 +101,10 @@ export function getBestMatch<K extends string>(
   return {
     key: bestKey,
     score: bestMm.maxVal,
-    loc: new cv.Point(
-      roi ? roi.x + bestMm.maxLoc.x : bestMm.maxLoc.x,
-      roi ? roi.y + bestMm.maxLoc.y : bestMm.maxLoc.y
-    ),
+    loc: {
+      x: roi ? roi.x + bestMm.maxLoc.x : bestMm.maxLoc.x,
+      y: roi ? roi.y + bestMm.maxLoc.y : bestMm.maxLoc.y,
+    },
     template: matchingAtlas.entries[bestKey].template,
   };
 }
@@ -121,10 +121,10 @@ export function findLocation(frame: CvMat, template: CvMat, roi?: CvRect) {
   return {
     key: '',
     score: mm.maxVal,
-    loc: new cv.Point(
-      roi ? roi.x + mm.maxLoc.x : mm.maxLoc.x,
-      roi ? roi.y + mm.maxLoc.y : mm.maxLoc.y
-    ),
+    loc: {
+      x: roi ? roi.x + mm.maxLoc.x : mm.maxLoc.x,
+      y: roi ? roi.y + mm.maxLoc.y : mm.maxLoc.y,
+    },
     template: template,
   };
 }
