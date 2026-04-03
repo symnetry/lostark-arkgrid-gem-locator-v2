@@ -1,4 +1,8 @@
-import type { ArkGridAttr } from '../constants/enums';
+import {
+  DEFAULT_GEM_RECOGNITION_LOCALE,
+  type ArkGridAttr,
+  type GemRecognitionLocale,
+} from '../constants/enums';
 import { type ArkGridGem } from '../models/arkGridGems';
 import type { CaptureWorkerRequest, CaptureWorkerResponse } from './types';
 
@@ -21,6 +25,7 @@ export class CaptureController {
   // web worker
   private worker: Worker | null = null;
   detectionMargin: number = 0;
+  private recognitionLocale: GemRecognitionLocale = DEFAULT_GEM_RECOGNITION_LOCALE;
 
   // debug
   private drawDebug: boolean = false;
@@ -159,7 +164,10 @@ export class CaptureController {
     return 'unknown';
   }
 
-  async startCapture(deferDisplayRequest: boolean = false) {
+  async startCapture(
+    recognitionLocale: GemRecognitionLocale,
+    deferDisplayRequest: boolean = false
+  ) {
     // idle 상태에서만 가능
     // 녹화를 시작합니다.
     // worker를 생성하고 어셋 로드를 시킨 뒤, 사용자에게 화면 공유를 요청합니다.
@@ -172,6 +180,7 @@ export class CaptureController {
 
       // loading으로 전환 (lock)
       this.state = 'loading';
+      this.recognitionLocale = recognitionLocale;
 
       // worker 생성 이후 handler 등록
       if (!this.worker) {
@@ -256,6 +265,7 @@ export class CaptureController {
             frame: value,
             drawDebug: this.drawDebug,
             detectionMargin: this.detectionMargin,
+            recognitionLocale: this.recognitionLocale,
           } satisfies CaptureWorkerRequest,
           [value]
         );

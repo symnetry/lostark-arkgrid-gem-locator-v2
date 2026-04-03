@@ -1,8 +1,16 @@
 import { persistedState } from 'svelte-persisted-state';
 
-import type { AppLocale } from '../constants/enums';
+import {
+  DEFAULT_GEM_RECOGNITION_LOCALE,
+  type AppLocale,
+  type GemRecognitionLocale,
+} from '../constants/enums';
 
 export const appLocale = persistedState<AppLocale>('appLocale', 'ko_kr');
+export const gemRecognitionLocale = persistedState<GemRecognitionLocale>(
+  'gemRecognitionLocale',
+  DEFAULT_GEM_RECOGNITION_LOCALE
+);
 
 export function toggleLocale() {
   if (appLocale.current == 'ko_kr') {
@@ -15,4 +23,7 @@ export function toggleLocale() {
 }
 export function setLocale(locale: AppLocale) {
   appLocale.current = locale;
+}
+export function setGemRecognitionLocale(locale: GemRecognitionLocale) {
+  gemRecognitionLocale.current = locale;
 }

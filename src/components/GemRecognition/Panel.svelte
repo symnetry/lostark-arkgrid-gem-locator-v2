@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
 
-  import { type ArkGridAttr, type LocalizationName } from '../../lib/constants/enums';
+  import {
+    GemRecognitionLocaleTypes,
+    supportedGemRecognitionLocales,
+    type ArkGridAttr,
+    type GemRecognitionLocale,
+    type LocalizationName,
+  } from '../../lib/constants/enums';
   import { CaptureController } from '../../lib/cv/captureController';
   import { type ArkGridGem, isSameArkGridGem } from '../../lib/models/arkGridGems';
   import {
@@ -9,11 +15,16 @@
     toggleDeferredScreenSharingInit,
     toggleUI,
   } from '../../lib/state/appConfig.state.svelte';
-  import { appLocale } from '../../lib/state/locale.state.svelte';
+  import {
+    appLocale,
+    gemRecognitionLocale,
+    setGemRecognitionLocale,
+  } from '../../lib/state/locale.state.svelte';
   import GemRecognitionGemList from './GemList.svelte';
   import GemRecognitionGuide from './Guide.svelte';
 
   let locale = $derived(appLocale.current);
+  let recognitionLocale = $derived(gemRecognitionLocale.current);
   const LTitle: LocalizationName = {
     ko_kr: '젬 화면 인식',
     en_us: 'Astrogem Recognition Screen',
@@ -58,9 +69,9 @@
   );
   const LSupportedClient = $derived(
     {
-      ko_kr: '지원 클라이언트: 한국어, 영어, 러시아어 (Beta)',
-      en_us: 'Supported Clients: Korean, English, Russian (Beta)',
-      zh_cn: '支持客户端：韩语、英语、俄语（测试版）',
+      ko_kr: '지원 클라이언트: 한국어, 영어, 중국어 간체, 러시아어, 러시아 서버 중국어 번역판',
+      en_us: 'Supported Clients: Korean, English, Simplified Chinese, Russian, Russian Server (Chinese Translation)',
+      zh_cn: '支持客户端：韩语、英语、简体中文、俄语、俄服汉化',
     }[locale]
   );
   const LControllerLazyLoading = $derived(
@@ -68,6 +79,20 @@
       ko_kr: '화면 공유시 튕김 방지',
       en_us: 'Prevent Screen Sharing Crash',
       zh_cn: '防止屏幕共享崩溃',
+    }[locale]
+  );
+  const LGameEnvironment = $derived(
+    {
+      ko_kr: '게임 환경',
+      en_us: 'Game Environment',
+      zh_cn: '游戏环境',
+    }[locale]
+  );
+  const LGameEnvironmentHint = $derived(
+    {
+      ko_kr: '화면 공유 전에 현재 게임 클라이언트 환경을 선택하세요.',
+      en_us: 'Select the current game client before starting screen sharing.',
+      zh_cn: '开始屏幕共享前，请先选择当前游戏客户端环境。',
     }[locale]
   );
   let debugCanvas: HTMLCanvasElement | null;
@@ -189,6 +214,10 @@
     }
   }
 
+  function updateRecognitionLocale(event: Event) {
+    setGemRecognitionLocale((event.currentTarget as HTMLSelectElement).value as GemRecognitionLocale);
+  }
+
   async function startGemCapture() {
     const isFirefox = typeof (window as any).InstallTrigger !== 'undefined';
     if (isFirefox) {
@@ -234,7 +263,10 @@
     controller.onStop = () => {
       isRecording = false;
     };
-    await controller.startCapture(appConfig.current.uiConfig.deferredScreenSharingInit);
+    await controller.startCapture(
+      recognitionLocale,
+      appConfig.current.uiConfig.deferredScreenSharingInit
+    );
   }
 
   async function stopGemCapture() {
@@ -288,6 +320,20 @@
   >
     <div class="buttons">
       <div class="left">
+        <div class="environment-selector">
+          <label for="recognition-locale">{LGameEnvironment}</label>
+          <select
+            id="recognition-locale"
+            value={recognitionLocale}
+            onchange={updateRecognitionLocale}
+            disabled={isRecording || isLoading}
+          >
+            {#each supportedGemRecognitionLocales as targetLocale}
+              <option value={targetLocale}>{GemRecognitionLocaleTypes[targetLocale].name[locale]}</option>
+            {/each}
+          </select>
+          <small>{LGameEnvironmentHint}</small>
+        </div>
         {#if !isRecording}
           <button onclick={startGemCapture} data-track="start-capture"
             >🖥️ {LStartCapture[locale]}</button
@@ -409,6 +455,27 @@
   }
   .buttons > div > button {
     flex-basis: auto;
+  }
+  .environment-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 15rem;
+  }
+  .environment-selector > label {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .environment-selector > select {
+    background-color: var(--card);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .environment-selector > small {
+    color: var(--muted-foreground);
+    line-height: 1.3;
   }
   .debug-screen {
     display: flex;

@@ -6,6 +6,8 @@ const templateFolders = [
   { folder: './opencv-templates/en_us', lang: 'en_us' },
   { folder: './opencv-templates/ko_kr', lang: 'ko_kr' },
   { folder: './opencv-templates/ru_ru', lang: 'ru_ru' },
+  { folder: './opencv-templates/ru_cn', lang: 'ru_cn' },
+  { folder: './opencv-templates/zh_cn', lang: 'zh_cn' },
 ];
 
 const publicDir = './public';

@@ -22,6 +22,36 @@ type RecgonitionTarget<K extends string> = {
   threshold: number;
 };
 
+type RecognitionRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type RecognitionLayout = {
+  gemAttr: RecognitionRect;
+  row: {
+    x: number;
+    y: number;
+    stepY: number;
+  };
+  gemName: RecognitionRect;
+  willPower: RecognitionRect;
+  corePoint: RecognitionRect;
+  optionName: RecognitionRect;
+  optionLevel: {
+    gapX: number;
+    fallbackX: number;
+    width: number;
+    height: number;
+  };
+  optionYOffset: {
+    top: number;
+    bottom: number;
+  };
+};
+
 class FrameProcessor {
   // init
   private loadedAsset: Awaited<ReturnType<typeof loadGemAsset>> | null = null;
@@ -54,6 +84,64 @@ class FrameProcessor {
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = 'high';
+  }
+
+  private getDefaultRecognitionLayout(): RecognitionLayout {
+    return {
+      gemAttr: { x: -186, y: 91, width: 224, height: 32 },
+      row: { x: -287, y: 213, stepY: 63 },
+      gemName: { x: 9, y: 14, width: 30, height: 30 },
+      willPower: { x: 65, y: 0, width: 18, height: 30 },
+      corePoint: { x: 65, y: 30, width: 18, height: 30 },
+      optionName: { x: 125, y: 0, width: 200, height: 30 },
+      optionLevel: { gapX: 16, fallbackX: 60, width: 48, height: 30 },
+      optionYOffset: { top: 0, bottom: 30 },
+    };
+  }
+
+  private getZhCnRecognitionLayout(): RecognitionLayout {
+    return {
+      gemAttr: { x: -190, y: 88, width: 236, height: 36 },
+      row: { x: -287, y: 213, stepY: 63 },
+      gemName: { x: 2, y: 8, width: 42, height: 42 },
+      willPower: { x: 62, y: -2, width: 24, height: 32 },
+      corePoint: { x: 62, y: 28, width: 24, height: 32 },
+      optionName: { x: 118, y: -2, width: 220, height: 34 },
+      optionLevel: { gapX: 4, fallbackX: 52, width: 72, height: 34 },
+      optionYOffset: { top: 0, bottom: 30 },
+    };
+  }
+
+  private getRuCnRecognitionLayout(): RecognitionLayout {
+    return {
+      gemAttr: { x: -190, y: 88, width: 236, height: 36 },
+      row: { x: -287, y: 213, stepY: 63 },
+      gemName: { x: 2, y: 8, width: 42, height: 42 },
+      willPower: { x: 62, y: -2, width: 24, height: 32 },
+      corePoint: { x: 62, y: 28, width: 24, height: 32 },
+      optionName: { x: 118, y: -2, width: 220, height: 34 },
+      optionLevel: { gapX: 14, fallbackX: 72, width: 64, height: 34 },
+      optionYOffset: { top: 0, bottom: 30 },
+    };
+  }
+
+  private getRecognitionLayout(locale: GemRecognitionLocale): RecognitionLayout {
+    if (locale === 'zh_cn') return this.getZhCnRecognitionLayout();
+    if (locale === 'ru_cn') return this.getRuCnRecognitionLayout();
+    return this.getDefaultRecognitionLayout();
+  }
+
+  private getOptionLevelXOffset(
+    locale: GemRecognitionLocale,
+    layout: RecognitionLayout,
+    optionNameRoi: RecognitionRect,
+    optionName: MatchingResult<KeyOptionString> | null
+  ) {
+    if (!optionName) return layout.optionLevel.fallbackX;
+
+    const optionNameXOffset = optionName.loc.x - optionNameRoi.x + optionName.template.cols;
+    const gapX = locale === 'zh_cn' ? 4 : layout.optionLevel.gapX;
+    return optionNameXOffset + gapX;
   }
 
   async init() {
@@ -129,7 +217,12 @@ class FrameProcessor {
     return null;
   }
 
-  processFrame(frame: VideoFrame, drawDebug: boolean = false, detectionMargin: number = 0) {
+  processFrame(
+    frame: VideoFrame,
+    drawDebug: boolean = false,
+    detectionMargin: number = 0,
+    recognitionLocale: GemRecognitionLocale
+  ) {
     const start = performance.now();
     const canvas = this.canvas;
     const ctx = this.ctx;
@@ -190,48 +283,56 @@ class FrameProcessor {
       }
 
       // 1. anchor 찾기
+      if (this.previousInfo && this.previousInfo.locale !== recognitionLocale) {
+        this.previousInfo = null;
+      }
 
-      // 이전 위치가 없다면 전역에서 탐색 후 반영
+      const currentAnchorAtlas = this.loadedAsset.atlasAnchorByLocale[recognitionLocale];
+      const currentAnchorEntry = currentAnchorAtlas.entries[recognitionLocale];
       const roiAnchor = this.previousInfo
         ? {
             x: this.previousInfo.anchorLoc.x,
             y: this.previousInfo.anchorLoc.y,
-            width: this.loadedAsset.atlasAnchor.entries[this.previousInfo.locale].width,
-            height: this.loadedAsset.atlasAnchor.entries[this.previousInfo.locale].height,
+            width: currentAnchorEntry.width,
+            height: currentAnchorEntry.height,
           }
         : { x: canvas.width / 2, y: 0, width: canvas.width / 2, height: canvas.height / 2 };
       const anchor = this.findBest(
         {
           roi: roiAnchor,
-          atlas: this.loadedAsset.atlasAnchor,
+          atlas: currentAnchorAtlas,
           threshold: this.thresholdSet.anchor - detectionMargin,
         },
         resizedFrame,
         debugCtx
       );
       if (!anchor) {
-        // 못 찾았으면 초기화 시킨 후 다음 프레임에 찾도록 시킴
         this.previousInfo = null;
         return;
-      } else {
-        // 찾았으면 반영
-        this.previousInfo = {
-          locale: anchor.key,
-          anchorLoc: {
-            x: anchor.loc.x,
-            y: anchor.loc.y,
-          },
-        };
       }
 
-      let currentLocale = this.previousInfo.locale;
-      let anchorX = this.previousInfo.anchorLoc.x;
-      let anchorY = this.previousInfo.anchorLoc.y;
+      this.previousInfo = {
+        locale: recognitionLocale,
+        anchorLoc: {
+          x: anchor.loc.x,
+          y: anchor.loc.y,
+        },
+      };
+
+      const currentLocale = this.previousInfo.locale;
+      const anchorX = this.previousInfo.anchorLoc.x;
+      const anchorY = this.previousInfo.anchorLoc.y;
+      const layout = this.getRecognitionLayout(currentLocale);
 
       //2 질서 혹은 혼돈 문구 탐색
       const gemAttr = this.findBest(
         {
-          roi: { x: anchorX - 186, y: anchorY + 91, width: 224, height: 32 },
+          roi: {
+            x: anchorX + layout.gemAttr.x,
+            y: anchorY + layout.gemAttr.y,
+            width: layout.gemAttr.width,
+            height: layout.gemAttr.height,
+          },
           atlas: this.loadedAsset.atlasGemAttr[currentLocale],
           threshold: this.thresholdSet.gemAttr - detectionMargin,
         },
@@ -243,14 +344,18 @@ class FrameProcessor {
       // 5. 9개의 젬을 찾아서 이미지 매칭
       const currentGems: ArkGridGem[] = [];
       for (let i = 0; i < 9; i++) {
-        // 젬 row의 위치 계산 (높이 61픽셀, gap 2픽셀)
-        const rowX = anchorX - 287;
-        const rowY = anchorY + 213 + 63 * i;
+        const rowX = anchorX + layout.row.x;
+        const rowY = anchorY + layout.row.y + layout.row.stepY * i;
 
         // 1) 젬 종류 (이름)
         const gemName = this.findBest(
           {
-            roi: { x: rowX + 9, y: rowY + 14, width: 30, height: 30 },
+            roi: {
+              x: rowX + layout.gemName.x,
+              y: rowY + layout.gemName.y,
+              width: layout.gemName.width,
+              height: layout.gemName.height,
+            },
             atlas: this.loadedAsset.altasGemImage[currentLocale],
             threshold: this.thresholdSet.gemImage - detectionMargin,
           },
@@ -261,7 +366,12 @@ class FrameProcessor {
         // 2) 의지력
         const willPower = this.findBest(
           {
-            roi: { x: rowX + 65, y: rowY, width: 18, height: 30 },
+            roi: {
+              x: rowX + layout.willPower.x,
+              y: rowY + layout.willPower.y,
+              width: layout.willPower.width,
+              height: layout.willPower.height,
+            },
             atlas: this.loadedAsset.atlasWillPower[currentLocale],
             threshold: this.thresholdSet.willPower - detectionMargin,
           },
@@ -272,7 +382,12 @@ class FrameProcessor {
         // 3) 질서/혼돈 포인트
         const corePoint = this.findBest(
           {
-            roi: { x: rowX + 65, y: rowY + 30, width: 18, height: 30 },
+            roi: {
+              x: rowX + layout.corePoint.x,
+              y: rowY + layout.corePoint.y,
+              width: layout.corePoint.width,
+              height: layout.corePoint.height,
+            },
             atlas: this.loadedAsset.atlasCorePoint[currentLocale],
             threshold: this.thresholdSet.corePoint - detectionMargin,
           },
@@ -289,21 +404,21 @@ class FrameProcessor {
         const optionTop: GemOptionResult = {
           optionName: null,
           optionLevel: null,
-          yOffset: 0,
+          yOffset: layout.optionYOffset.top,
         };
         const optionBottom: GemOptionResult = {
           optionName: null,
           optionLevel: null,
-          yOffset: 30, // 하단 옵션은 아래로 30px에 위치
+          yOffset: layout.optionYOffset.bottom,
         };
 
         for (const targetOption of [optionTop, optionBottom]) {
           // 옵션 이름
           const optionNameRoi = {
-            x: rowX + 125,
-            y: rowY + targetOption.yOffset,
-            width: 200,
-            height: 30,
+            x: rowX + layout.optionName.x,
+            y: rowY + layout.optionName.y + targetOption.yOffset,
+            width: layout.optionName.width,
+            height: layout.optionName.height,
           };
           let optionName = this.findBest(
             {
@@ -331,16 +446,11 @@ class FrameProcessor {
               }
             );
             if (tempOptionName) {
-              // 그래도 발견되면, 이제 이건 "아군 공격 강화"임
               optionName = tempOptionName;
-            } else {
-              // "아군 공격 강화"가 발견되지 않았을 거니까 "공격력"임
             }
           }
 
           if (currentLocale === 'ru_ru') {
-            // findBest에서 그려주지 않은 디버그 그려주기
-            // XXX 못 찾은 경우 못 찾았다는 걸 보여주는데, 그거는 못함
             if (debugCtx && optionName) {
               showMatch(debugCtx, optionNameRoi, optionName, {
                 scoreThreshold: this.thresholdSet.optionName - detectionMargin,
@@ -348,19 +458,20 @@ class FrameProcessor {
             }
           }
 
-          // 옵션 레벨
-          // 레벨의 위치는 앞서 찾은 위치에서 16px 떨어진 위치
-          const optionLevelXOffset = optionName
-            ? optionName.loc.x - optionNameRoi.x + optionName.template.cols + 16
-            : 60;
+          const optionLevelXOffset = this.getOptionLevelXOffset(
+            currentLocale,
+            layout,
+            optionNameRoi,
+            optionName
+          );
 
           const optionLevel = this.findBest(
             {
               roi: {
-                x: rowX + 125 + optionLevelXOffset,
-                y: rowY + targetOption.yOffset,
-                width: 48,
-                height: 30,
+                x: rowX + layout.optionName.x + optionLevelXOffset,
+                y: rowY + layout.optionName.y + targetOption.yOffset,
+                width: layout.optionLevel.width,
+                height: layout.optionLevel.height,
               },
               atlas: this.loadedAsset.atlasOptionLevel[currentLocale],
               threshold: this.thresholdSet.optionLevel - detectionMargin,
@@ -432,7 +543,12 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
 
     case 'frame':
       // 프레임 분석 요청
-      const result = processor.processFrame(data.frame, data.drawDebug, data.detectionMargin);
+      const result = processor.processFrame(
+        data.frame,
+        data.drawDebug,
+        data.detectionMargin,
+        data.recognitionLocale
+      );
       postToMain({
         type: 'frame:done',
         result,

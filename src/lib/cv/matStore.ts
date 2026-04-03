@@ -9,7 +9,9 @@ import {
 import { type ArkGridGemName, type ArkGridGemOptionName } from '../models/arkGridGems';
 import { type EnUsTemplateName, enUsCoords, enUsFileName } from '../opencv-template-coords/en_us';
 import { type KoKrTemplateName, koKrCoords, koKrFileName } from '../opencv-template-coords/ko_kr';
+import { type RuCnTemplateName, ruCnCoords, ruCnFileName } from '../opencv-template-coords/ru_cn';
 import { type RuRuTemplateName, ruRuCoords, ruRuFileName } from '../opencv-template-coords/ru_ru';
+import { type ZhCnTemplateName, zhCnCoords, zhCnFileName } from '../opencv-template-coords/zh_cn';
 import { type MatchingAtlas, generateMatchingAtlas } from './atlas';
 import { getCv } from './cvRuntime';
 import type { CvMat } from './types';
@@ -20,6 +22,8 @@ export type KeyOptionString = ArkGridGemOptionName;
 export type KeyOptionLevel = '1' | '2' | '3' | '4' | '5';
 export type KeyGemAttr = ArkGridAttr;
 export type KeyGemName = ArkGridGemName;
+
+type TemplateCoordMap = Record<string, { x: number; y: number; w: number; h: number }>;
 
 async function fetchSpriteMat(url: string): Promise<CvMat> {
   // url 이미지를 읽어온 뒤 Mat으로 변환
@@ -40,48 +44,49 @@ type GemTemplates = {
   ko_kr: Record<KoKrTemplateName, CvMat>;
   en_us: Record<EnUsTemplateName, CvMat>;
   ru_ru: Record<RuRuTemplateName, CvMat>;
+  ru_cn: Record<RuCnTemplateName, CvMat>;
+  zh_cn: Record<ZhCnTemplateName, CvMat>;
 };
-async function loadGemTemplates(): Promise<GemTemplates> {
+async function loadLocaleTemplates<TTemplateName extends string>(
+  fileName: string,
+  coords: Record<TTemplateName, { x: number; y: number; w: number; h: number }>
+): Promise<Record<TTemplateName, CvMat>> {
   const cv = getCv();
-  // 각 언어별 sprite에서 이미지를 잘라온다.
-  const result = {
-    ko_kr: {} as any,
-    en_us: {} as any,
-    ru_ru: {} as any,
+  const sprite = await fetchSpriteMat(`${import.meta.env.BASE_URL}/${fileName}`);
+  const templates = {} as Record<TTemplateName, CvMat>;
+
+  for (const [name, rect] of Object.entries(coords) as [TTemplateName, TemplateCoordMap[string]][]) {
+    templates[name] = sprite.roi(new cv.Rect(rect.x, rect.y, rect.w, rect.h));
+  }
+
+  sprite.delete();
+  return templates;
+}
+
+async function loadGemTemplates(): Promise<GemTemplates> {
+  return {
+    ko_kr: await loadLocaleTemplates(koKrFileName, koKrCoords),
+    en_us: await loadLocaleTemplates(enUsFileName, enUsCoords),
+    ru_ru: await loadLocaleTemplates(ruRuFileName, ruRuCoords),
+    ru_cn: await loadLocaleTemplates(ruCnFileName, ruCnCoords),
+    zh_cn: await loadLocaleTemplates(zhCnFileName, zhCnCoords),
   };
+}
 
-  const koSprite = await fetchSpriteMat(`${import.meta.env.BASE_URL}/${koKrFileName}`);
-  for (const [name, rect] of Object.entries(koKrCoords)) {
-    result.ko_kr[name] = koSprite.roi(new cv.Rect(rect.x, rect.y, rect.w, rect.h));
-  }
-  koSprite.delete();
-
-  const enSprite = await fetchSpriteMat(`${import.meta.env.BASE_URL}/${enUsFileName}`);
-  for (const [name, rect] of Object.entries(enUsCoords)) {
-    result.en_us[name] = enSprite.roi(new cv.Rect(rect.x, rect.y, rect.w, rect.h));
-  }
-  enSprite.delete();
-
-  const ruSprite = await fetchSpriteMat(`${import.meta.env.BASE_URL}/${ruRuFileName}`);
-  for (const [name, rect] of Object.entries(ruRuCoords)) {
-    result.ru_ru[name] = ruSprite.roi(new cv.Rect(rect.x, rect.y, rect.w, rect.h));
-  }
-  ruSprite.delete();
-
-  return result;
+function generateSingleMatchingAtlas<K extends string>(key: K, mat: CvMat): MatchingAtlas<K> {
+  return generateMatchingAtlas({ [key]: mat } as Record<K, CvMat>);
 }
 
 export async function loadGemAsset() {
   const gt = await loadGemTemplates();
 
-  const matAnchors = supportedGemRecognitionLocales.reduce(
+  const atlasAnchorByLocale = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
-      acc[locale] = gt[locale]['anchor.png'];
+      acc[locale] = generateSingleMatchingAtlas(locale, gt[locale]['anchor.png']);
       return acc;
     },
-    {} as Record<GemRecognitionLocale, CvMat>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<GemRecognitionLocale>>
   );
-  const atlasAnchor = generateMatchingAtlas(matAnchors);
 
   const atlasGemAttr = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
@@ -175,7 +180,7 @@ export async function loadGemAsset() {
   );
 
   return {
-    atlasAnchor,
+    atlasAnchorByLocale,
     atlasGemAttr,
     altasGemImage,
     atlasWillPower,
