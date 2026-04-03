@@ -2,17 +2,78 @@
   import imgCorePoint from '../assets/corepoint.png';
   import imgWillPower from '../assets/willpower.png';
   import type { AppLocale } from '../lib/constants/enums';
-  import { type ArkGridGem, ArkGridGemOptionTypes, getGemImage } from '../lib/models/arkGridGems';
+  import type { ArkGridGem } from '../lib/models/arkGridGems';
+  import { ArkGridGemOptionTypes, getGemImage, determineGemGradeByGem } from '../lib/models/arkGridGems';
   import { appLocale } from '../lib/state/locale.state.svelte';
   import { deleteGem } from '../lib/state/profile.state.svelte';
 
   interface Props {
     gem: ArkGridGem;
     showDeleteButton?: boolean;
+    /** 是否允许编辑（护石识别列表中开启） */
+    editable?: boolean;
+    /** 自定义删除回调（如不传则用默认的 deleteGem） */
+    onDelete?: (gem: ArkGridGem) => void;
   }
 
-  let { gem, showDeleteButton = true }: Props = $props();
+  let { gem, showDeleteButton = true, editable = false, onDelete }: Props = $props();
   let locale: AppLocale = $derived(appLocale.current);
+
+  let editing = $state(false);
+  let editingField = $state<string | null>(null);
+  let editValue = $state(0);
+
+  function startEditField(field: string) {
+    if (!editing) {
+      editing = true;
+    }
+    editingField = field;
+    switch (field) {
+      case 'req': editValue = gem.req; break;
+      case 'point': editValue = gem.point; break;
+      case 'opt1': editValue = gem.option1.value; break;
+      case 'opt2': editValue = gem.option2.value; break;
+    }
+  }
+
+  function applyEdit(min: number, max: number) {
+    const num = Math.max(min, Math.min(max, Number(editValue) || min));
+    switch (editingField) {
+      case 'req': gem.req = num; break;
+      case 'point': gem.point = num; break;
+      case 'opt1': gem.option1.value = num; break;
+      case 'opt2': gem.option2.value = num; break;
+    }
+    editingField = null;
+  }
+
+  function toggleEdit() {
+    if (editing) {
+      // 退出编辑模式时重新计算品质
+      if (editingField !== null) {
+        // 如果正在编辑某个字段，先应用
+        const limits: Record<string, [number, number]> = {
+          req: [3, 6], point: [3, 6], opt1: [1, 5], opt2: [1, 5],
+        };
+        const [min, max] = limits[editingField] ?? [0, 99];
+        applyEdit(min, max);
+      }
+      gem.grade = determineGemGradeByGem(gem);
+      editing = false;
+      editingField = null;
+    } else {
+      editing = true;
+    }
+  }
+
+  /** 编辑框键盘事件 */
+  function onInputKeydown(e: KeyboardEvent, min: number, max: number) {
+    if (e.key === 'Enter') {
+      applyEdit(min, max);
+    } else if (e.key === 'Escape') {
+      editingField = null;
+    }
+  }
 </script>
 
 <div class="gem-box">
@@ -21,43 +82,126 @@
       <img src={getGemImage(gem.gemAttr, gem.name)} alt={gem.name} />
     </div>
 
+    <!-- 意志力 req -->
     <div class="willPower gem-spec">
-      <div class="text">{gem.req}</div>
+      {#if editable && editing && (editingField === 'req')}
+        <input
+          class="inline-edit"
+          type="number"
+          bind:value={editValue}
+          min={3}
+          max={6}
+          onkeydown={(e) => onInputKeydown(e, 3, 6)}
+          onblur={() => applyEdit(3, 6)}
+          autofocus
+        />
+      {:else}
+        <div
+          class="text"
+          class:editable={editable}
+          onclick={() => startEditField('req')}
+        >
+          {gem.req}
+        </div>
+      {/if}
       <img src={imgWillPower} alt="W" />
     </div>
 
     <div class="vl"></div>
 
+    <!-- 选项1 -->
     <div class="option1 gem-spec">
       <div class="text shrinkable">
         {ArkGridGemOptionTypes[gem.option1.optionType].name[locale]}
       </div>
-      <div class="text">
-        Lv. {gem.option1.value}
-      </div>
+      {#if editable && editing && (editingField === 'opt1')}
+        <input
+          class="inline-edit"
+          type="number"
+          bind:value={editValue}
+          min={1}
+          max={5}
+          onkeydown={(e) => onInputKeydown(e, 1, 5)}
+          onblur={() => applyEdit(1, 5)}
+          autofocus
+        />
+      {:else}
+        <div
+          class="text"
+          class:editable={editable}
+          onclick={() => startEditField('opt1')}
+        >
+          Lv. {gem.option1.value}
+        </div>
+      {/if}
     </div>
 
+    <!-- 点数 point -->
     <div class="corePoint gem-spec">
-      <div class="text">
-        {gem.point}
-      </div>
+      {#if editable && editing && (editingField === 'point')}
+        <input
+          class="inline-edit"
+          type="number"
+          bind:value={editValue}
+          min={3}
+          max={6}
+          onkeydown={(e) => onInputKeydown(e, 3, 6)}
+          onblur={() => applyEdit(3, 6)}
+          autofocus
+        />
+      {:else}
+        <div
+          class="text"
+          class:editable={editable}
+          onclick={() => startEditField('point')}
+        >
+          {gem.point}
+        </div>
+      {/if}
       <img src={imgCorePoint} alt="P" />
     </div>
 
+    <!-- 选项2 -->
     <div class="option2 gem-spec">
       <div class="text shrinkable">
         {ArkGridGemOptionTypes[gem.option2.optionType].name[locale]}
       </div>
-      <div class="text">
-        Lv. {gem.option2.value}
-      </div>
+      {#if editable && editing && (editingField === 'opt2')}
+        <input
+          class="inline-edit"
+          type="number"
+          bind:value={editValue}
+          min={1}
+          max={5}
+          onkeydown={(e) => onInputKeydown(e, 1, 5)}
+          onblur={() => applyEdit(1, 5)}
+          autofocus
+        />
+      {:else}
+        <div
+          class="text"
+          class:editable={editable}
+          onclick={() => startEditField('opt2')}
+        >
+          Lv. {gem.option2.value}
+        </div>
+      {/if}
     </div>
   </div>
-  {#if showDeleteButton}
-    <div class="edit-button">
-      <button onclick={() => deleteGem(gem)}>🗑️</button>
-    </div>
-  {/if}
+  <div class="edit-button">
+    {#if showDeleteButton}
+      <button onclick={() => (onDelete ? onDelete(gem) : deleteGem(gem))}>🗑️</button>
+    {/if}
+    {#if editable}
+      <button onclick={toggleEdit}>
+        {#if editing}
+          {#if locale === 'zh_cn'}✅完成{:else if locale === 'en_us'}✅Done{:else}✅완료{/if}
+        {:else}
+          {#if locale === 'zh_cn'}✏️编辑{:else if locale === 'en_us'}✏️Edit{:else}✏️편집{/if}
+        {/if}
+      </button>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -155,6 +299,30 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* 可编辑数字样式 */
+  .editable {
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 3px;
+    transition: background-color 0.15s;
+  }
+  .editable:hover {
+    background-color: rgba(255, 200, 50, 0.25);
+  }
+
+  .inline-edit {
+    width: 2.4rem;
+    height: 1.5rem;
+    font-size: 0.85rem;
+    padding: 0 0.2rem;
+    border: 1px solid #eab308;
+    background: var(--card);
+    color: var(--foreground);
+    text-align: center;
+    outline: none;
+    transform: translateY(-0.075rem);
   }
 
   div[data-grade] {

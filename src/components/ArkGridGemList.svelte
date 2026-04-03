@@ -9,11 +9,17 @@
     gems: ArkGridGem[];
     showDeleteButton?: boolean;
     emptyDescription?: string;
+    /** 是否允许编辑护石数值 */
+    editable?: boolean;
+    /** 自定义删除回调 */
+    onDelete?: (gem: ArkGridGem) => void;
   }
   let {
     gems,
     showDeleteButton = true,
     emptyDescription = '보유한 젬이 없습니다.',
+    editable = false,
+    onDelete,
   }: Props = $props();
 
   let container: HTMLDivElement;
@@ -65,7 +71,7 @@
 <div class="gems" bind:this={container}>
   {#if gems.length > 0}
     {#each gems as gem}
-      <ArkGridGemDetail {gem} {showDeleteButton} />
+      <ArkGridGemDetail {gem} {showDeleteButton} {editable} {onDelete} />
     {/each}
   {:else}
     <span class="epmty-description">{emptyDescription} </span>

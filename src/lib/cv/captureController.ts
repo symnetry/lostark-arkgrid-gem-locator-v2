@@ -15,12 +15,21 @@ const START_CAPTURE_ERROR_TYPES = [
 
 type StartCaptureErrorType = (typeof START_CAPTURE_ERROR_TYPES)[number];
 
+/** 单帧识别结果 */
+export interface SnapshotResult {
+  gemAttr: ArkGridAttr;
+  gems: ArkGridGem[];
+  /** 每个护石对应的感知哈希(64字符'0'/'1'字符串)，与gems数组一一对应，用于邻居上下文去重 */
+  gemHashes?: string[];
+}
+
 export class CaptureController {
-  private state: 'idle' | 'loading' | 'recording' | 'closing' = 'idle';
+  private state: 'idle' | 'loading' | 'ready' | 'recording' | 'closing' = 'idle';
 
   // 화면 녹화 기능들
   private reader: ReadableStreamDefaultReader<VideoFrame> | null = null;
   private track: MediaStreamVideoTrack | null = null;
+  private mediaStream: MediaStream | null = null;  // 持有MediaStream引用以便完整释放
 
   // web worker
   private worker: Worker | null = null;
@@ -38,11 +47,12 @@ export class CaptureController {
   } | null = null;
   private awaitFrameCompletion: (() => void) | null = null;
 
-  // 외부 등록 콜백
-  onFrameDone: ((gemAttr: ArkGridAttr, gems: ArkGridGem[]) => void) | null = null; // 분석 완료
+  // 外部 등록 콜백
+  onFrameDone: ((gemAttr: ArkGridAttr, gems: ArkGridGem[], gemHashes?: string[]) => void) | null = null; // 분석 완료(流式模式)
+  onSnapshotDone: ((result: SnapshotResult) => void) | null = null; // 单帧识别完成(截图模式)
   onLoad: (() => void) | null = null; // worker 준비 완료
   onStartCaptureError: ((err: StartCaptureErrorType) => void) | null = null; // worker 준비 실패
-  onReady: (() => void) | null = null; // 프레임 소비 완료
+  onReady: (() => void) | null = null; // 프레임 소비 완료 / 就绪可截图
   onStop: (() => void) | null = null; // 녹화 중단
 
   constructor(debugCanvas?: HTMLCanvasElement | null) {
@@ -73,9 +83,9 @@ export class CaptureController {
         this.awaitFrameCompletion?.();
         this.awaitFrameCompletion = null;
 
-        // 외부에서 등록된 콜백 불러줌
+        // 外部에서 등록된 콜백 불러줌
 
-        /* 
+        /*
         queueMicrotask(() => { ... }) 안의 코드는:
 
         지금 실행 ❌
@@ -83,9 +93,9 @@ export class CaptureController {
 
         TypeScript는 이렇게 생각해:
 
-        “이 콜백이 실행될 때까지
+        "이 콜백이 실행될 때까지
         this.onFrameDone이나 data.result가
-        바뀌지 않는다는 보장이 없다.”
+        바뀌지 않는다는 보장이 없다."
         */
         if (this.state === 'recording') {
           // recording일 때에만 onFrameDone 불러줌
@@ -93,7 +103,16 @@ export class CaptureController {
           const onFrameDone = this.onFrameDone;
           if (onFrameDone && result) {
             queueMicrotask(() => {
-              onFrameDone(result.gemAttr, result.gems);
+              onFrameDone(result.gemAttr, result.gems, result.gemHashes);
+            });
+          }
+        } else if (this.state === 'ready') {
+          // ready(截图模式)일 때 onSnapshotDone 불러줌
+          const result = data.result;
+          const onSnapshotDone = this.onSnapshotDone;
+          if (onSnapshotDone && result) {
+            queueMicrotask(() => {
+              onSnapshotDone({ gemAttr: result.gemAttr, gems: result.gems, gemHashes: result.gemHashes });
             });
           }
         }
@@ -131,6 +150,7 @@ export class CaptureController {
       if (!stream) {
         throw Error('No stream');
       }
+      this.mediaStream = stream;  // 持有引用以便完整释放
       this.track = stream.getVideoTracks()[0];
       if (!this.track) {
         throw Error('No video track');
@@ -171,7 +191,7 @@ export class CaptureController {
     // idle 상태에서만 가능
     // 녹화를 시작합니다.
     // worker를 생성하고 어셋 로드를 시킨 뒤, 사용자에게 화면 공유를 요청합니다.
-    // 둘 다 완료되면 루프를 시작합니다.
+    // 둘 다 완료되면 ready상태로 전환 (loop는 별도로 startRecording 호출 필요)
 
     try {
       if (this.state !== 'idle') {
@@ -216,17 +236,14 @@ export class CaptureController {
       }
       value?.close();
 
-      // 프레임도 읽을 수 있고 worker도 준비가 끝난 경우 onReady 부름
+      // 준비 완료 → ready 상태 (loop는 별도 startRecording에서 실행)
+      this.state = 'ready';
       const onReady = this.onReady;
       if (onReady) {
         queueMicrotask(() => {
           onReady();
         });
       }
-
-      // 프레임 캡쳐 및 전송 loop로 이동
-      this.state = 'recording';
-      this.loop();
     } catch (err) {
       // 초기화 도중 에러 발생하면 분류해서 onStartCaptureError 불러줌
       const classified = this.classifyCaptureError(err);
@@ -239,7 +256,81 @@ export class CaptureController {
     }
   }
 
+  /**
+   * 从ready状态进入recording循环模式（兼容旧的流式API）
+   */
+  startRecording() {
+    if (this.state === 'ready') {
+      this.state = 'recording';
+      this.loop();
+    }
+  }
+
+  /**
+   * 单帧截图识别：从当前画面截取一帧发送给worker，返回Promise<识别结果>
+   * 需要在 ready 状态下调用（即已经调用过startCapture并成功初始化）
+   */
+  async captureSingleFrame(): Promise<SnapshotResult> {
+    if (this.state !== 'ready') {
+      throw Error(`Cannot capture frame in state: ${this.state}. Need 'ready' state.`);
+    }
+    if (!this.reader || !this.worker) {
+      throw Error('reader or worker not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          reject(Error('captureSingleFrame timeout'));
+        }
+      }, 10000);
+
+      this.onSnapshotDone = (result) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve(result);
+        }
+      };
+
+      // 读取一帧
+      this.reader.read().then(({ value, done }) => {
+        if (done || !value) {
+          clearTimeout(timeout);
+          if (!resolved) {
+            resolved = true;
+            reject(Error('Stream ended'));
+          }
+          return;
+        }
+        // 发送给worker分析
+        this.worker!.postMessage(
+          {
+            type: 'frame',
+            frame: value,
+            drawDebug: this.drawDebug,
+            detectionMargin: this.detectionMargin,
+            recognitionLocale: this.recognitionLocale,
+          } satisfies CaptureWorkerRequest,
+          [value]
+        );
+      }).catch((err) => {
+        clearTimeout(timeout);
+        if (!resolved) {
+          resolved = true;
+          reject(err);
+        }
+      });
+    });
+  }
+
   private async loop() {
+    // 帧率限制：每帧最少间隔200ms
+    const FRAME_INTERVAL_MS = 200;
+    let lastFrameTime = 0;
+
     // state가 recording이라면, reader로부터 프레임을 읽어서 worker에게 전달 및 결과를 기다린다.
     while (this.state == 'recording') {
       if (!this.reader) {
@@ -272,21 +363,26 @@ export class CaptureController {
         value = undefined;
         // 주의: value 소유권은 worker에게 넘어갔으니 더 이상 건드리면 안 되기에 undefined
         await waitForAnalysis;
+
+        // 帧率限制：如果处理太快，等待到下一帧间隔
+        const elapsed = performance.now() - lastFrameTime;
+        if (elapsed < FRAME_INTERVAL_MS) {
+          await new Promise((r) => setTimeout(r, FRAME_INTERVAL_MS - elapsed));
+        }
+        lastFrameTime = performance.now();
       } finally {
         // 모종의 사유로 value의 소유권이 넘어가지 않았으면 controller에서 종료
         value?.close();
       }
     }
     // loop가 탈출되면 idle로 설정
-    this.track?.stop();
-    this.track = null;
+    await this.cleanup();
     const onStop = this.onStop;
     if (onStop) {
       queueMicrotask(() => {
         onStop();
       });
     }
-    this.state = 'idle';
   }
 
   async stopCapture() {
@@ -296,10 +392,39 @@ export class CaptureController {
     // 너무 장황해지는 거 같아서 loop 종료로...
     if (this.state === 'recording') {
       this.state = 'closing'; // 추후 loop 탈출 이후 idle로 가는 것을 기대
+    } else if (this.state === 'ready' || this.state === 'loading') {
+      // ready/loading 상태에서도 정지 가능
+      await this.cleanup();
+      this.state = 'idle';
+    }
+  }
+
+  /** 清理所有资源（reader/track/stream/worker） */
+  private async cleanup() {
+    this.track?.stop();
+    this.track = null;
+    // 停止mediaStream所有轨道（音频+视频），确保完全释放
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(t => t.stop());
+      this.mediaStream = null;
+    }
+    try { await this.reader?.cancel(); } catch {}
+    this.reader = null;
+    this.destroyWorker();
+  }
+  /** 完全销毁 Worker，释放 OpenCV WASM 内存 */
+  destroyWorker() {
+    if (this.worker) {
+      this.worker.postMessage({ type: 'stop' });
+      this.worker.terminate();
+      this.worker = null;
     }
   }
   isIdle() {
     return this.state === 'idle';
+  }
+  isReady() {
+    return this.state === 'ready';
   }
   isRecording() {
     return this.state == 'recording';

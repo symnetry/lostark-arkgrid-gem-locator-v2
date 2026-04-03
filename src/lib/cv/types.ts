@@ -30,6 +30,8 @@ export type CaptureWorkerResponse =
             locale: GemRecognitionLocale;
             gemAttr: ArkGridAttr;
             gems: ArkGridGem[];
+            /** 每个护石对应的感知哈希(64字符'0'/'1'字符串)，与gems数组一一对应 */
+            gemHashes: string[];
           }
         | undefined;
     }

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
-// https://vite.dev/config/
+// 开发环境默认配置（使用 GitHub Pages 路径）
 export default defineConfig({
   plugins: [svelte()],
   base: '/lostark-arkgrid-gem-locator-v2/',

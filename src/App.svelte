@@ -3,7 +3,6 @@
   import { onMount } from 'svelte';
 
   import CharacterProfileEditor from './components/CharacterProfileEditor.svelte';
-  import Footer from './components/Footer/Footer.svelte';
   import GemRecognitionPanel from './components/GemRecognition/Panel.svelte';
   import AppConfiguration from './components/Header/AppConfiguration.svelte';
   import ProfileEdit from './components/Header/ProfileEditor.svelte';
@@ -87,9 +86,6 @@
     <CharacterProfileEditor bind:profile={currentProfile}></CharacterProfileEditor>
   </div>
 </main>
-<footer>
-  <Footer></Footer>
-</footer>
 
 <style>
   .contents {

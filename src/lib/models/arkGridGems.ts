@@ -135,6 +135,11 @@ export interface ArkGridGem {
   option1: ArkGridGemOption;
   option2: ArkGridGemOption;
   assign?: number;
+  /**
+   * 护石的视觉感知哈希(aHash)，由OpenCV在Worker端计算
+   * 用于滚动去重：同一物理护石在不同帧中应产生相同/相似的hash
+   */
+  visualHash?: string;
 }
 
 export function determineGemGrade(

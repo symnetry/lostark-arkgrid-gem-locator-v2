@@ -72,8 +72,8 @@ class FrameProcessor {
   private thresholdSet = {
     anchor: 0.95,
     gemAttr: 0.8,
-    gemImage: 0.8,
-    willPower: 0.8,
+    gemImage: 0.72,
+    willPower: 0.65,   // 意志力阈值降低(单数字3-6，匹配难度大，失败时用默认值兜底)
     corePoint: 0.8,
     optionName: 0.8,
     optionLevel: 0.8,
@@ -84,6 +84,26 @@ class FrameProcessor {
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = 'high';
+  }
+
+  /** 清理所有 OpenCV 资源和 Canvas 引用，释放 WASM 堆内存 */
+  destroy() {
+    // 释放所有 atlas 的 cv.Mat（每组语言 × 6类 atlas）
+    if (this.loadedAsset) {
+      const { atlasAnchorByLocale, atlasGemAttr, altasGemImage, atlasWillPower, atlasCorePoint, atlasOptionName, atlasOptionLevel } = this.loadedAsset;
+      for (const atlas of Object.values(atlasAnchorByLocale)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(atlasGemAttr)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(altasGemImage)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(atlasWillPower)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(atlasCorePoint)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(atlasOptionName)) { atlas.atlas.delete(); }
+      for (const atlas of Object.values(atlasOptionLevel)) { atlas.atlas.delete(); }
+      this.loadedAsset = null;
+    }
+    // 置空状态引用，让 GC 回收 Canvas 和 Mat
+    this.previousInfo = null;
+    this.cv = null;
+    this.frameTimes.length = 0;
   }
 
   private getDefaultRecognitionLayout(): RecognitionLayout {
@@ -119,9 +139,9 @@ class FrameProcessor {
       gemName: { x: 2, y: 8, width: 42, height: 42 },
       willPower: { x: 62, y: -2, width: 24, height: 32 },
       corePoint: { x: 62, y: 28, width: 24, height: 32 },
-      optionName: { x: 118, y: -2, width: 220, height: 34 },
-      optionLevel: { gapX: 14, fallbackX: 72, width: 64, height: 34 },
-      optionYOffset: { top: 0, bottom: 30 },
+      optionName: { x: 118, y: 2, width: 260, height: 34 },
+      optionLevel: { gapX: -2, fallbackX: 46, width: 56, height: 34 },
+      optionYOffset: { top: 4, bottom: 32 },
     };
   }
 
@@ -220,6 +240,68 @@ class FrameProcessor {
     }
     if (match.score > t.threshold) return match;
     return null;
+  }
+
+  /**
+   * 计算给定区域的差分感知哈希 (difference hash, dHash)
+   * 
+   * 比 aHash 更适合文字/边缘场景：
+   * - aHash 比较每个像素与全局均值 → 文字细节被平均掉
+   * - dHash 比较相邻像素的梯度方向 → 保留文字笔画边缘信息
+   * 
+   * 使用 Canvas getImageData 提取像素，完全绕过 OpenCV 的 ROI 操作。
+   */
+  private computeDHash(
+    canvas: OffscreenCanvas,
+    ctx: OffscreenCanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  ): string {
+    try {
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const sx = Math.max(0, Math.round(x));
+      const sy = Math.max(0, Math.round(y));
+      const sw = Math.min(Math.round(w), cw - sx);
+      const sh = Math.min(Math.round(h), ch - sy);
+
+      if (sw <= 0 || sh <= 0) return '';
+
+      // 提取 RGBA 像素数据
+      const imageData = ctx.getImageData(sx, sy, sw, sh);
+      const pixels = imageData.data;
+
+      // 使用 64x64 分辨率（4096位哈希），高精度区分韩文选项名
+      const HASH_SIZE = 64;
+      const grayPixels: number[] = new Array(HASH_SIZE * HASH_SIZE);
+
+      // 缩放到 HASH_SIZE x HASH_SIZE（中心点采样）
+      for (let gy = 0; gy < HASH_SIZE; gy++) {
+        for (let gx = 0; gx < HASH_SIZE; gx++) {
+          const srcX = Math.min(((gx + 0.5) / HASH_SIZE) * sw, sw - 1) | 0;
+          const srcY = Math.min(((gy + 0.5) / HASH_SIZE) * sh, sh - 1) | 0;
+          const idx = (srcY * sw + srcX) * 4;
+          grayPixels[gy * HASH_SIZE + gx] =
+            pixels[idx] * 0.299 + pixels[idx + 1] * 0.587 + pixels[idx + 2] * 0.114;
+        }
+      }
+
+      // dHash：比较每个像素与右侧邻居（最后一列与倒数第二列比较）
+      let hash = '';
+      for (let gy = 0; gy < HASH_SIZE; gy++) {
+        for (let gx = 0; gx < HASH_SIZE; gx++) {
+          const current = grayPixels[gy * HASH_SIZE + gx];
+          const right = grayPixels[gy * HASH_SIZE + ((gx + 1) % HASH_SIZE)];
+          hash += current > right ? '1' : '0';
+        }
+      }
+
+      return hash;
+    } catch (e) {
+      return '';
+    }
   }
 
   processFrame(
@@ -348,6 +430,8 @@ class FrameProcessor {
 
       // 5. 9개의 젬을 찾아서 이미지 매칭
       const currentGems: ArkGridGem[] = [];
+      /** 每个护石的感知哈希，与currentGems一一对应 */
+      const gemHashes: string[] = [];
       for (let i = 0; i < 9; i++) {
         const rowX = anchorX + layout.row.x;
         const rowY = anchorY + layout.row.y + layout.row.stepY * i;
@@ -484,19 +568,43 @@ class FrameProcessor {
           targetOption.optionLevel = optionLevel;
         }
 
+        // 诊断：输出每行匹配失败的具体环节
+        const missing: string[] = [];
+        if (!gemName) missing.push('gemName');
+        if (!willPower) missing.push('willPower');
+        if (!corePoint) missing.push('corePoint');
+        if (!optionTop.optionName) missing.push('optTop.name');
+        if (!optionTop.optionLevel) missing.push('optTop.level');
+        if (!optionBottom.optionName) missing.push('optBot.name');
+        if (!optionBottom.optionLevel) missing.push('optBot.level');
+
+        if (missing.length > 0) {
+          postToMain({
+            type: 'debug',
+            message: `[row ${i}] MISS: ${missing.join(', ')}` +
+            ` | gemName=${gemName?.score?.toFixed(2) ?? '-'} ` +
+            ` will=${willPower?.score?.toFixed(2) ?? '-'}` +
+            ` core=${corePoint?.score?.toFixed(2) ?? '-'}` +
+            ` optN1=${optionTop.optionName?.score?.toFixed(2) ?? '-'} optL1=${optionTop.optionLevel?.score?.toFixed(2) ?? '-'}` +
+            ` optN2=${optionBottom.optionName?.score?.toFixed(2) ?? '-'} optL2=${optionBottom.optionLevel?.score?.toFixed(2) ?? '-'}`,
+          });
+        }
+
         if (
           gemName !== null &&
-          willPower !== null &&
+          // willPower 和 corePoint 匹配失败时不再丢弃整行
+          // willPower 默认用5(中间值)，corePoint默认用4
           corePoint !== null &&
           optionTop.optionName !== null &&
           optionTop.optionLevel !== null &&
           optionBottom.optionName !== null &&
           optionBottom.optionLevel !== null
         ) {
+          const reqVal = willPower ? Number(willPower.key) : 5;
           const gem: ArkGridGem = {
             gemAttr: gemAttr.key,
             name: gemName.key,
-            req: Number(willPower.key),
+            req: reqVal,
             point: Number(corePoint.key),
             option1: {
               optionType: optionTop.optionName.key,
@@ -509,9 +617,31 @@ class FrameProcessor {
           };
           gem.grade = determineGemGradeByGem(gem);
           currentGems.push(gem);
+
+          // 计算该护石的差分感知哈希(dHash)，用于主线程滚动去重
+          //
+          // v2优化：
+          // 1. HASH_SIZE从32提升到64(1024位→4096位)，精度4倍
+          // 2. 采样区域收窄：去掉大面积背景padding，聚焦文字区域
+          //    背景(渐变/边框)在不同护石间完全一致，会淹没文字差异导致hash碰撞
+          let rowHash = '';
+          if (gemName && optionTop.optionName && optionBottom.optionName) {
+            const centerX = gemName.loc.x;
+            const optNameX = centerX + layout.optionName.x;
+            const optY = rowY + layout.optionYOffset.top;
+            // 收窄区域：去掉多余padding，只保留选项名+等级的文字部分
+            rowHash = this.computeDHash(
+              canvas, ctx,
+              optNameX,
+              optY,
+              layout.optionName.width + layout.optionLevel.width,    // 去掉+20余量
+              layout.optionName.height * 2 + 8                      // 用紧凑高度替代原bottom偏移
+            );
+          }
+          gemHashes.push(rowHash);
         }
       }
-      return { locale: currentLocale, gemAttr: gemAttr.key, gems: currentGems };
+      return { locale: currentLocale, gemAttr: gemAttr.key, gems: currentGems, gemHashes };
       // ... 그 외 인식
       // return 인식된 객체들
     } finally {
@@ -559,6 +689,12 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
           image: processor.debugCanvas.transferToImageBitmap(),
         });
       }
+      break;
+
+    case 'stop':
+      // 자원 정리 및 Worker 종료 준비
+      processor.destroy();
+      postToMain({ type: 'init:done' }); // 用已有消息类型表示清理完成
       break;
   }
 };

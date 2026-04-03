@@ -64,6 +64,15 @@
   let chaosGems = $derived(gems.chaosGems);
   let scrollPositions = $state<number[]>([0, 0]);
 
+  /** 从识别列表中删除单条护石 */
+  function deleteGemFromList(gem: typeof orderGems[number]) {
+    const targetList = gem.gemAttr === '질서' ? orderGems : chaosGems;
+    const idx = targetList.indexOf(gem);
+    if (idx >= 0) {
+      targetList.splice(idx, 1); // Svelte 5 数组 splice 自动触发响应式更新
+    }
+  }
+
   const LGemTotalCount = $derived({
     ko_kr: `젬 보유 수량 ${orderGems.length + chaosGems.length} / 100<br>(질서 ${orderGems.length}개, 혼돈 ${chaosGems.length}개
     보유 중)`,
@@ -137,7 +146,9 @@
   </div>
   <ArkGridGemList
     gems={currentGems}
-    showDeleteButton={false}
+    showDeleteButton={true}
+    editable={true}
+    onDelete={(gem) => deleteGemFromList(gem as typeof orderGems[number])}
     emptyDescription={LEmpty[locale]}
     bind:this={container}
   ></ArkGridGemList>
