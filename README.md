@@ -181,26 +181,7 @@ MIT License
 ### 访问地址
 
 - **主站**: https://free-3gpsqv6gf05f54c6-1301002338.tcloudbaseapp.com/lostark-arkgrid-gem-locator/
-- **随机查询参数版本** (避免CDN缓存): https://free-3gpsqv6gf05f54c6-1301002338.tcloudbaseapp.com/lostark-arkgrid-gem-locator/?v=`${Date.now()}`
 
-### 部署信息
 
-- **环境ID**: free-3gpsqv6gf05f54c6
-- **部署时间**: 2026-04-03
-- **部署路径**: /lostark-arkgrid-gem-locator/
-- **构建配置**: vite.config.tencent.ts (base: '/lostark-arkgrid-gem-locator/')
-
-### 如何重新部署
-
-1. 构建腾讯云版本:
-   ```bash
-   npm run build:tencent
-   ```
-
-2. 使用 CloudBase 工具上传 dist 文件夹到 `/lostark-arkgrid-gem-locator` 路径
-
-3. 访问上述 URL 验证部署
-
----
 
 **注意**: 这是一个非官方工具，与 Smilegate RPG 或 Amazon Games 无关。
