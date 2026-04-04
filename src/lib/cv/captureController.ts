@@ -54,6 +54,7 @@ export class CaptureController {
   onStartCaptureError: ((err: StartCaptureErrorType) => void) | null = null; // worker 준비 실패
   onReady: (() => void) | null = null; // 프레임 소비 완료 / 就绪可截图
   onStop: (() => void) | null = null; // 녹화 중단
+  onLevelRoiDump: ((images: ImageBitmap[], labels: string[]) => void) | null = null; // 等级ROI导出(Debug模式)
 
   constructor(debugCanvas?: HTMLCanvasElement | null) {
     if (debugCanvas) this.debugCanvas = debugCanvas;
@@ -138,6 +139,18 @@ export class CaptureController {
         } finally {
           if (data.image) data.image.close();
         }
+        break;
+
+      case 'level-roi-dump':
+        if (this.onLevelRoiDump && data.images?.length) {
+          const images = data.images;
+          const labels = data.labels ?? [];
+          queueMicrotask(() => this.onLevelRoiDump!(images, labels));
+        } else {
+          // 没有注册回调时自动释放
+          data.images?.forEach(img => img.close());
+        }
+        break;
     }
   }
 
@@ -410,14 +423,29 @@ export class CaptureController {
     }
     try { await this.reader?.cancel(); } catch {}
     this.reader = null;
-    this.destroyWorker();
+    await this.destroyWorker();
   }
   /** 完全销毁 Worker，释放 OpenCV WASM 内存 */
-  destroyWorker() {
+  async destroyWorker() {
     if (this.worker) {
-      this.worker.postMessage({ type: 'stop' });
+      try {
+        // 先发送 stop 消息让 Worker 内部清理
+        this.worker.postMessage({ type: 'stop' });
+        // 给一点时间让 Worker 完成清理（200ms）
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (e) {
+        // 忽略错误
+      }
+      // 强制终止 Worker
       this.worker.terminate();
       this.worker = null;
+      
+      // 尝试触发垃圾回收（浏览器可能忽略，但尽力而为）
+      if ('gc' in window) {
+        try {
+          (window as any).gc();
+        } catch (e) {}
+      }
     }
   }
   isIdle() {

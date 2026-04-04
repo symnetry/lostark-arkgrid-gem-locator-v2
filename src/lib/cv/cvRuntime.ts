@@ -27,3 +27,21 @@ export function getCv(): CV {
   }
   return cvInstance;
 }
+
+/**
+ * 尝试释放 OpenCV WASM 内存
+ * 注意：这是一个尽力而为的尝试，OpenCV.js 可能不会完全释放所有 WASM 内存
+ */
+export function destroyOpenCv(): void {
+  if (cvInstance) {
+    try {
+      // 尝试触发 OpenCV 的清理（如果支持）
+      if ('clearAll' in cvInstance) {
+        (cvInstance as any).clearAll();
+      }
+    } catch (e) {
+      // 忽略清理错误
+    }
+    cvInstance = null;
+  }
+}

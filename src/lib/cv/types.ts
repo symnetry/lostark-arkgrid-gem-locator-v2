@@ -36,7 +36,13 @@ export type CaptureWorkerResponse =
         | undefined;
     }
   | { type: 'error'; error: WorkerError }
-  | { type: 'debug'; image?: ImageBitmap; message?: string };
+  | { type: 'debug'; image?: ImageBitmap; message?: string }
+  | {
+      /** Debug模式下的等级ROI区域导出（用于重新制作模板） */
+      type: 'level-roi-dump';
+      images: ImageBitmap[];
+      labels: string[];
+    };
 
 export type WorkerError = {
   message: string;

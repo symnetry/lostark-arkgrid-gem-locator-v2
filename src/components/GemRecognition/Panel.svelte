@@ -43,9 +43,9 @@
     zh_cn: '停止屏幕共享',
   };
   const LShowScreen: LocalizationName = {
-    ko_kr: '공유 중인 화면 보기',
-    en_us: 'Display Sharing Screen',
-    zh_cn: '显示共享屏幕',
+    ko_kr: 'DEBUG',
+    en_us: 'DEBUG',
+    zh_cn: 'DEBUG',
   };
   const LHideScreen: LocalizationName = {
     ko_kr: '공유 중인 화면 끄기',
@@ -194,11 +194,11 @@
     const totalGems = result.gemAttr == '질서' ? totalOrderGems : totalChaosGems;
     const frameHashes = result.gemHashes ?? [];
 
-    // console.log(`[截图识别] ${result.gemAttr === '질서' ? '秩序' : '混沌'} | 共${result.gems.length}个`, JSON.stringify(result.gems.map((g, idx) => ({
-    //   idx,
-    //   zh: gemLog(g),
-    //   raw: `${g.name} | ${g.grade} | ${g.option1.optionType} Lv.${g.option1.value} / ${g.option2.optionType} Lv.${g.option2.value}`,
-    // })), null, 2));
+    console.log(`[截图识别] ${result.gemAttr === '질서' ? '秩序' : '混沌'} | 共${result.gems.length}个`, JSON.stringify(result.gems.map((g, idx) => ({
+      idx,
+      zh: gemLog(g),
+      raw: `${g.name} | ${g.grade} | ${g.option1.optionType} Lv.${g.option1.value} / ${g.option2.optionType} Lv.${g.option2.value}`,
+    })), null, 2));
 
     let addedAny = false;
     let newCount = 0;
@@ -212,7 +212,7 @@
       if (existingEntry) {
         // contentKey 命中 → 同一护石（覆盖更新最新OCR值）
         const old = totalGems[existingEntry.index];
-        // console.log(`  [命中✓] pos=${i} | ${gemLog(gem)} → 覆盖旧值 (${gemLog(old)})`);
+        console.log(`  [命中✓] pos=${i} | ${gemLog(gem)} → 覆盖旧值 (${gemLog(old)})`);
         totalGems[existingEntry.index] = gem;
         // 更新帧哈希（用于后续可能的邻居比较）
         existingEntry.frameHashes = [...frameHashes];
@@ -221,7 +221,7 @@
         addedAny = true;
       } else {
         // 新护石：添加到列表
-        // console.log(`  [新增] pos=${i} | ${gemLog(gem)} | key=${key}`);
+        console.log(`  [新增] pos=${i} | ${gemLog(gem)} | key=${key}`);
         _globalContentKeys.add(key);
         _globalContentKeyIndex.set(key, { index: totalGems.length, frameHashes: [...frameHashes], pos: i });
         totalGems.push(gem);
@@ -231,7 +231,7 @@
     }
 
     if (newCount > 0 || updateCount > 0) {
-      // console.log(`  [去重统计] 新增:${newCount} 更新:${updateCount} 总数:${totalGems.length}`);
+      console.log(`  [去重统计] 新增:${newCount} 更新:${updateCount} 总数:${totalGems.length}`);
     }
 
     if (addedAny) {
@@ -280,14 +280,14 @@
     const hashKey = gemHashes.join('|');
     if (_lastAddedSequence === hashKey && isNearIdentical) return;
 
-    // console.log(`[护石识别] ${gemAttr === '질서' ? '秩序' : '混沌'} | 共${currentGems.length}个`, JSON.stringify(currentGems.map((g, idx) => ({
-    //   idx,
-    //   name: g.name,
-    //   grade: g.grade,
-    //   opt1: `${g.option1.optionType} Lv.${g.option1.value}`,
-    //   opt2: `${g.option2.optionType} Lv.${g.option2.value}`,
-    //   hash: gemHashes[idx]?.substring(0, 20),
-    // })), null, 2));
+    console.log(`[护石识别] ${gemAttr === '질서' ? '秩序' : '混沌'} | 共${currentGems.length}个`, JSON.stringify(currentGems.map((g, idx) => ({
+      idx,
+      name: g.name,
+      grade: g.grade,
+      opt1: `${g.option1.optionType} Lv.${g.option1.value}`,
+      opt2: `${g.option2.optionType} Lv.${g.option2.value}`,
+      hash: gemHashes[idx]?.substring(0, 20),
+    })), null, 2));
 
     let addedAny = false;
     for (let i = 0; i < currentGems.length; i++) {
@@ -370,6 +370,35 @@
     };
     controller.onReady = () => {
       isReady = true;
+    };
+    controller.onLevelRoiDump = (images, labels) => {
+      // 将等级 ROI 区域导出为 PNG 文件下载（用于重新制作模板）
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        const label = labels[i] ?? `roi_${i}`;
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) ctx.drawImage(img, 0, 0);
+          // 转为 blob 并触发下载
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `level_roi_${label}.png`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+          }, 'image/png');
+        } finally {
+          img.close();
+        }
+      }
     };
 
     await controller.startCapture(

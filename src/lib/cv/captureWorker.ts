@@ -3,7 +3,7 @@ import type { CV } from '@techstark/opencv-js';
 import type { GemRecognitionLocale } from '../constants/enums';
 import { type ArkGridGem, determineGemGradeByGem } from '../models/arkGridGems';
 import type { MatchingAtlas } from './atlas';
-import { getCv, initOpenCv } from './cvRuntime';
+import { getCv, initOpenCv, destroyOpenCv } from './cvRuntime';
 import { showMatch } from './debug';
 import { type KeyOptionLevel, type KeyOptionString, loadGemAsset } from './matStore';
 import { type MatchingResult, getBestMatch } from './matcher';
@@ -45,6 +45,8 @@ type RecognitionLayout = {
     fallbackX: number;
     width: number;
     height: number;
+    /** bottom行专用fallback(当optionName未匹配时使用，需跳过属性名) */
+    bottomFallbackX?: number;
   };
   optionYOffset: {
     top: number;
@@ -107,6 +109,9 @@ class FrameProcessor {
     this.previousInfo = null;
     this.cv = null;
     this.frameTimes.length = 0;
+    
+    // 释放 OpenCV WASM 内存
+    destroyOpenCv();
   }
 
   private getDefaultRecognitionLayout(): RecognitionLayout {
@@ -130,7 +135,9 @@ class FrameProcessor {
       willPower: { x: 62, y: -2, width: 24, height: 32 },
       corePoint: { x: 62, y: 28, width: 24, height: 32 },
       optionName: { x: 118, y: -2, width: 220, height: 34 },
-      optionLevel: { gapX: -2, fallbackX: 46, width: 56, height: 34 },
+      // 模板为 "Lv. X" 格式(~45x18)，ROI 精确适配
+      // bottomFallbackX: 底部行optionName未匹配时的fallback(属性名较长，需更大偏移)
+      optionLevel: { gapX: -2, fallbackX: 44, width: 52, height: 24, bottomFallbackX: 80 },
       optionYOffset: { top: 0, bottom: 30 },
     };
   }
@@ -143,7 +150,11 @@ class FrameProcessor {
       willPower: { x: 62, y: -2, width: 24, height: 32 },
       corePoint: { x: 62, y: 28, width: 24, height: 32 },
       optionName: { x: 118, y: 2, width: 260, height: 34 },
-      optionLevel: { gapX: -2, fallbackX: 46, width: 56, height: 34 },
+      // ru_cn(俄服汉化): 属性名较长("盟友攻击强化"、"友军伤害强化"等6字)
+      // 关键改进：ROI 加宽覆盖整个"属性名+等级"区域，让模板匹配自动定位"Lv."
+      //   - 不再依赖 optionName 匹配结果计算偏移（optionName 可能只匹配部分文字）
+      //   - 宽度设为 ~140px 足够容纳最长属性名(6字~72px) + Lv.X(~45px) + 余量
+      optionLevel: { gapX: 0, fallbackX: 0, width: 140, height: 28 },
       optionYOffset: { top: 4, bottom: 32 },
     };
   }
@@ -229,6 +240,8 @@ class FrameProcessor {
     option?: {
       method?: number;
       excludeKey?: K;
+      /** 置信度边距：最佳匹配必须比第二名高出的最小分数 */
+      minConfidenceMargin?: number;
     }
   ): MatchingResult<K> | null {
     // 주어진 target을 찾고
@@ -504,7 +517,7 @@ class FrameProcessor {
           yOffset: layout.optionYOffset.bottom,
         };
 
-        for (const targetOption of [optionTop, optionBottom]) {
+        for (const [optIdx, targetOption] of [optionTop, optionBottom].entries()) {
           // 옵션 이름
           const optionNameRoi = {
             x: rowX + layout.optionName.x,
@@ -550,12 +563,25 @@ class FrameProcessor {
             }
           }
 
-          const optionLevelXOffset = this.getOptionLevelXOffset(layout, optionNameRoi, optionName);
+          // 等级ROI偏移策略：
+          //   - fallbackX > 0: 使用optionName动态定位(传统模式)
+          //   - fallbackX == 0: 宽ROI模式，从optionName区域起始开始，让模板匹配自动找"Lv."
+          const useWideRoi = layout.optionLevel.fallbackX === 0;
+          const levelBaseOffset = useWideRoi
+            ? 0
+            : (() => {
+                const offset = this.getOptionLevelXOffset(layout, optionNameRoi, optionName);
+                const isBottom = optIdx === 1;
+                if (isBottom && !optionName && layout.optionLevel.bottomFallbackX) {
+                  return layout.optionLevel.bottomFallbackX;
+                }
+                return offset;
+              })();
 
           const optionLevel = this.findBest(
             {
               roi: {
-                x: rowX + layout.optionName.x + optionLevelXOffset,
+                x: rowX + layout.optionName.x + levelBaseOffset,
                 y: rowY + layout.optionName.y + targetOption.yOffset,
                 width: layout.optionLevel.width,
                 height: layout.optionLevel.height,
@@ -564,7 +590,13 @@ class FrameProcessor {
               threshold: this.getOptionLevelThreshold(currentLocale, detectionMargin),
             },
             resizedFrame,
-            debugCtx
+            debugCtx,
+            {
+              diagLabel: `row${i}_${optIdx === 0 ? 'T' : 'B'}`,
+              // 置信度边距：最佳必须明显优于第二名，否则拒绝识别
+              minConfidenceMargin: 0.03,
+              marginRejectLabel: `lv-row${i}-${optIdx === 0 ? 'T' : 'B'}`,
+            }
           );
 
           targetOption.optionName = optionName;
@@ -654,6 +686,66 @@ class FrameProcessor {
       if (this.frameTimes.length > 10) this.frameTimes.shift();
     }
   }
+
+  /**
+   * 公共方法：在 Debug 模式下导出当前帧的等级 ROI 区域
+   */
+  exportLevelRoiDump(recognitionLocale: GemRecognitionLocale): { images: ImageBitmap[]; labels: string[] } | null {
+    if (!this.previousInfo) return null;
+    return this.dumpLevelROIs(
+      this.canvas,
+      this.getRecognitionLayout(recognitionLocale),
+      this.previousInfo.anchorLoc.x,
+      this.previousInfo.anchorLoc.y
+    );
+  }
+
+  /** @internal 内部实现：裁剪并导出等级 ROI 区域 */
+  dumpLevelROIs(
+    canvas: OffscreenCanvas,
+    layout: RecognitionLayout,
+    anchorX: number,
+    anchorY: number
+  ): { images: ImageBitmap[]; labels: string[] } | null {
+    const images: ImageBitmap[] = [];
+    const labels: string[] = [];
+
+    for (let i = 0; i < 9; i++) {
+      const rowX = anchorX + layout.row.x;
+      const rowY = anchorY + layout.row.y + layout.row.stepY * i;
+
+      for (const [posIdx, [posName, yOffset]] of [['top', layout.optionYOffset.top], ['bottom', layout.optionYOffset.bottom]].entries()) {
+        // 计算等级 ROI 的实际坐标（与 findBest 调用时一致）
+        const isBottom = posIdx === 1;
+        const useWideRoi = layout.optionLevel.fallbackX === 0;
+        const optionLevelXOffset = useWideRoi ? 0 : (
+          (isBottom && layout.optionLevel.bottomFallbackX)
+            ? layout.optionLevel.bottomFallbackX
+            : layout.optionLevel.fallbackX
+        );
+        const x = Math.round(rowX + layout.optionName.x + optionLevelXOffset);
+        const y = Math.round(rowY + layout.optionName.y + yOffset);
+        // 使用实际 ROI 尺寸（不加额外放大，方便精确检查匹配区域）
+        const w = Math.round(layout.optionLevel.width * 1.2);
+        const h = Math.round(layout.optionLevel.height * 1.5);
+
+        try {
+          // 创建裁剪用的 OffscreenCanvas
+          const cropCanvas = new OffscreenCanvas(w, h);
+          const cropCtx = cropCanvas.getContext('2d');
+          if (!cropCtx) continue;
+          // 从主画布裁剪（使用 RGBA 原图，保留颜色信息便于人工检查）
+          cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+          images.push(cropCanvas.transferToImageBitmap());
+          labels.push(`row${i}_${posName}_lv`);
+        } catch {
+          // 忽略单次裁剪失败
+        }
+      }
+    }
+
+    return images.length > 0 ? { images, labels } : null;
+  }
 }
 
 function postToMain(msg: CaptureWorkerResponse) {
@@ -691,6 +783,11 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
           type: 'debug',
           image: processor.debugCanvas.transferToImageBitmap(),
         });
+        // 导出等级 ROI 区域（用于重新制作模板）
+        const levelDump = processor.exportLevelRoiDump(data.recognitionLocale);
+        if (levelDump) {
+          postToMain({ type: 'level-roi-dump', images: levelDump.images, labels: levelDump.labels });
+        }
       }
       break;
 

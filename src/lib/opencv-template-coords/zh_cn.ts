@@ -33,4 +33,4 @@ export const zhCnCoords = {
 
 export type ZhCnTemplateName = keyof typeof zhCnCoords;
 
-export const zhCnFileName = 'opencv_template_zh_cn_1775218404475.png';
+export const zhCnFileName = 'opencv_template_zh_cn_1775245072497.png';
