@@ -23,7 +23,7 @@ export function buildScoreMap(coeff: number, maxLevel: number) {
     let minScore = 100;
     let maxScore = 0;
 
-    // ✅ #6: 상한을 미리 계산하여 루프 오버헤드 감소
+    // ✅ #6: 预先计算上限以减少循环开销
     const limit = maxLevel - v;
     for (let base = 0; base <= limit; base++) {
       const coeffAfter = Math.floor(((base + v) * coeff) / 120) + 10000;
@@ -43,7 +43,7 @@ export function buildScoreMap(coeff: number, maxLevel: number) {
 }
 
 export class GemSet {
-  // 코어에 젬을 장착한 상태
+  // 核心装备护石的状态
   att: number;
   skill: number;
   boss: number;
@@ -76,8 +76,8 @@ export class GemSet {
     this.maxScore = -1;
   }
   setScoreRange(scoreMaps: [number, number][][]) {
-    // 모든 시스템에서 얻을 수 있는 최대 공격력, 추가 피해, 보스 피해를 알 수 있으면
-    // 이 GemSet으로 얻을 수 있는 전투력의 범위를 한정할 수 있다.
+    // 如果知道所有系统能获得的最大攻击力、追加伤害、Boss伤害，
+    // 就能限定该GemSet能获得的战斗力范围。
     const coreScore = (this.coreCoeff + 10000) / 10000;
 
     // 전투력 증가 최대치
@@ -96,12 +96,12 @@ export class GemSet {
 
     if (this.maxScore < this.minScore) {
       console.log(this);
-      throw Error(`${this.maxScore}이 ${this.minScore}보다 작습니다.`);
+      throw Error(`${this.maxScore}小于${this.minScore}。`);
     }
   }
 }
 export class GemSetPack {
-  // 질서 혹은 혼돈 3개의 코어에 대해 할당된 3개의 GemSet
+  // 分配给秩序或混沌3个核心的3个GemSet
   att: number;
   skill: number;
   boss: number;
@@ -139,16 +139,16 @@ export class GemSetPack {
 
     // if (this.maxScore < this.minScore) {
     //   console.log(this);
-    //   throw Error(`${this.maxScore}이 ${this.minScore}보다 작습니다.`);
+    //   throw Error(`${this.maxScore}小于${this.minScore}。`);
     // }
   }
 }
 
-export const gemOptionLevelCoeffs = [400, 700, 1000]; // 공격력, 추가 피해, 보스 피해
-export const gemOptionLevelCoeffsSupporter = [600, 1050, 1500]; // 아피강, 낙인력, 아공강
+export const gemOptionLevelCoeffs = [400, 700, 1000]; // 攻击力, 追加伤害, Boss伤害
+export const gemOptionLevelCoeffsSupporter = [600, 1050, 1500]; // 追加伤害强化, 烙印力, 友军攻击强化
 
 export class GemSetPackTuple {
-  // GemSetPack이 두 개 있는 것, 즉 완성된 하나의 아크 그리드
+  // 两个GemSetPack，即一个完整的方舟棋盘
   att: number;
   skill: number;
   boss: number;

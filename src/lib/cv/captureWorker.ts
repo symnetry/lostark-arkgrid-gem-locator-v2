@@ -11,13 +11,13 @@ import type { CaptureWorkerRequest, CaptureWorkerResponse, CvMat } from './types
 
 type RecgonitionTarget<K extends string> = {
   roi: {
-    // 전체 frame에서 탐색 대상 roi
+    // 整个帧中的搜索目标roi
     x: number;
     y: number;
     width: number;
     height: number;
   };
-  // 사용할 atlas
+  // 使用的atlas
   atlas: MatchingAtlas<K>;
   threshold: number;
 };
@@ -187,9 +187,9 @@ class FrameProcessor {
     if (this.initPromise) {
       return this.initPromise;
     }
-    // Q. 두 개의 흐름이 동시에 여기 도착하면?
-    // A. JS/Worker는 단일 스레드이며,
-    //    첫 await 이전의 동기 코드는 중단되지 않고 원자적으로 실행된다
+    // Q. 两个流程同时到达这里怎么办?
+    // A. JS/Worker是单线程，
+    //    第一个await之前的同步代码不会中断，会原子性执行
     this.initPromise = (async () => {
       await initOpenCv();
       this.cv = getCv();
@@ -208,24 +208,24 @@ class FrameProcessor {
   adjustResolution(height: number) {
     let resolutionScale = 1;
     let expectedResolution = 'FHD';
-    // 윈도우 타이틀 바 높이는 32px정도라고 함
+    // 窗口标题栏高度大概是32px
     if (height < 1080) {
-      // FHD 미만인 경우, FHD로 늘림
-      resolutionScale = 1080 / (height - 27); // 윈도우 10 기준 실제로 27px
-      expectedResolution = `(경고) FHD 미만`;
+      // FHD以下的情况，放大到FHD
+      resolutionScale = 1080 / (height - 27); // Windows 10 实际是27px
+      expectedResolution = `(警告) FHD 以下`;
     } else if (height >= 1080 && height <= 1080 + 48) {
-      // FHD, UWFHD의 경우 그대로 사용
+      // FHD, UWFHD的情况直接使用
     } else if (height >= 1440 && height <= 1440 + 48) {
-      // QHD, UWQHD의 경우 해상도 3/4배
+      // QHD, UWQHD的情况分辨率3/4倍
       resolutionScale = 3 / 4;
       expectedResolution = 'QHD';
     } else if (height >= 2160 && height <= 2160 + 48) {
-      // UHD의 경우 해상도 1/2배
+      // UHD的情况分辨率1/2倍
       resolutionScale = 1 / 2;
       expectedResolution = 'UHD';
     } else {
-      // ? FHD 그대로 사용
-      expectedResolution = '(경고) Unknown';
+      // ? 直接使用FHD
+      expectedResolution = '(警告) Unknown';
     }
     return {
       resolutionScale,
@@ -244,7 +244,7 @@ class FrameProcessor {
       minConfidenceMargin?: number;
     }
   ): MatchingResult<K> | null {
-    // 주어진 target을 찾고
+    // 找到给定的target
     if (!this.cv) throw Error('cv is not ready');
     const roi = new this.cv.Rect(t.roi.x, t.roi.y, t.roi.width, t.roi.height);
     const match = getBestMatch(frame, t.atlas, roi, option);
@@ -344,7 +344,7 @@ class FrameProcessor {
       resizedFrame = cv.matFromImageData(imageData);
       cv.cvtColor(resizedFrame, resizedFrame, cv.COLOR_RGBA2GRAY);
       if (resolutionScale != 1) {
-        // 자체적으로 downscale을 할 땐 추가 margin 부여
+        // 自己进行downscale时添加额外margin
         detectionMargin += 0.1;
       }
       if (drawDebug) {
@@ -356,11 +356,11 @@ class FrameProcessor {
           debugCtx?.drawImage(frame, 0, 0, this.debugCanvas.width, this.debugCanvas.height);
           debugCtx.font = `40px Arial`;
           debugCtx.fillStyle = 'white';
-          debugCtx.strokeStyle = 'black'; // 테두리 색
-          debugCtx.lineWidth = 10 * resolutionScale; // 테두리 두께
+          debugCtx.strokeStyle = 'black'; // 边框颜色
+          debugCtx.lineWidth = 10 * resolutionScale; // 边框厚度
           let x = 25;
           let y = 100;
-          // 테두리 먼저 그리고 흰 글씨 채우기
+          // 先画边框再填白色文字
           let msg = `Resolution: ${expectedResolution} (${frame.displayWidth}x${frame.displayHeight})`;
           debugCtx.strokeText(msg, x, y);
           debugCtx.fillText(msg, x, y);
@@ -385,7 +385,7 @@ class FrameProcessor {
         }
       }
 
-      // 1. anchor 찾기
+      // 1. 寻找anchor
       if (this.previousInfo && this.previousInfo.locale !== recognitionLocale) {
         this.previousInfo = null;
       }
@@ -427,7 +427,7 @@ class FrameProcessor {
       const anchorY = this.previousInfo.anchorLoc.y;
       const layout = this.getRecognitionLayout(currentLocale);
 
-      //2 질서 혹은 혼돈 문구 탐색
+      //2 寻找秩序或者混沌文字
       const gemAttr = this.findBest(
         {
           roi: {
@@ -444,7 +444,7 @@ class FrameProcessor {
       );
       if (!gemAttr) return;
 
-      // 5. 9개의 젬을 찾아서 이미지 매칭
+      // 5. 找到9个护石并进行图像匹配
       const currentGems: ArkGridGem[] = [];
       /** 每个护石的感知哈希，与currentGems一一对应 */
       const gemHashes: string[] = [];
@@ -452,7 +452,7 @@ class FrameProcessor {
         const rowX = anchorX + layout.row.x;
         const rowY = anchorY + layout.row.y + layout.row.stepY * i;
 
-        // 1) 젬 종류 (이름)
+        // 1) 护石种类 (名字)
         const gemName = this.findBest(
           {
             roi: {
@@ -468,7 +468,7 @@ class FrameProcessor {
           debugCtx
         );
 
-        // 2) 의지력
+        // 2) 意志力
         const willPower = this.findBest(
           {
             roi: {
@@ -484,7 +484,7 @@ class FrameProcessor {
           debugCtx
         );
 
-        // 3) 질서/혼돈 포인트
+        // 3) 秩序/混沌点数
         const corePoint = this.findBest(
           {
             roi: {
@@ -500,7 +500,7 @@ class FrameProcessor {
           debugCtx
         );
 
-        // 4) 젬 옵션 추출
+        // 4) 护石选项提取
         type GemOptionResult = {
           optionName: MatchingResult<KeyOptionString> | null;
           optionLevel: MatchingResult<KeyOptionLevel> | null;
@@ -518,7 +518,7 @@ class FrameProcessor {
         };
 
         for (const [optIdx, targetOption] of [optionTop, optionBottom].entries()) {
-          // 옵션 이름
+          // 选项名字
           const optionNameRoi = {
             x: rowX + layout.optionName.x,
             y: rowY + layout.optionName.y + targetOption.yOffset,
@@ -535,9 +535,9 @@ class FrameProcessor {
             currentLocale === 'ru_ru' ? null : debugCtx
           );
 
-          // ru_ru의 경우, "공격력"이 "아군 공격 강화" 문자열에서 캡쳐됨
+          // ru_ru的情况下，"攻击力"从"友军攻击强化"字符串中捕获
           if (optionName !== null && currentLocale === 'ru_ru' && optionName.key === '공격력') {
-            // 따라서 "공격력"이 없는 atlas에서 다시 한 번 확인
+            // 因此再次确认没有"攻击力"的atlas
             const tempOptionName = this.findBest(
               {
                 roi: optionNameRoi,
@@ -677,8 +677,8 @@ class FrameProcessor {
         }
       }
       return { locale: currentLocale, gemAttr: gemAttr.key, gems: currentGems, gemHashes };
-      // ... 그 외 인식
-      // return 인식된 객체들
+      // ... 其他识别
+      // return 识别的对象们
     } finally {
       if (resizedFrame) resizedFrame.delete();
       frame.close();
@@ -757,7 +757,7 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
   const data = e.data;
   switch (data.type) {
     case 'init':
-      // 초기화 요청
+      // 初始化请求
       try {
         await processor.init();
         postToMain({ type: 'init:done' });
@@ -767,7 +767,7 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
       break;
 
     case 'frame':
-      // 프레임 분석 요청
+      // 帧分析请求
       const result = processor.processFrame(
         data.frame,
         data.drawDebug,
@@ -792,7 +792,7 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
       break;
 
     case 'stop':
-      // 자원 정리 및 Worker 종료 준비
+      // 资源清理及Worker终止准备
       processor.destroy();
       postToMain({ type: 'init:done' }); // 用已有消息类型表示清理完成
       break;

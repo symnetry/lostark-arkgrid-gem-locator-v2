@@ -84,7 +84,7 @@ export function getBestMatch<K extends string>(
     const template = matchingAtlas.entries[key].template;
     const result = new cv.Mat();
     // if (template.cols > targetFrame.cols && template.rows > targetFrame.rows) {
-    //   // 지금은 둘 다 만족하는 경우, image와 templ을 서로 바꿔서 계산한다.
+    //   // 现在两者都满足的情况下，交换 image 和 templ 进行计算
     //   throw Error(
     //     `Template size ${template.cols}x${template.rows} is larger than ROI ${targetFrame.cols}x${targetFrame.rows}. matchTemplate skipped.`
     //   );

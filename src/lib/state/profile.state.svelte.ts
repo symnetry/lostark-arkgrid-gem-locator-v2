@@ -34,14 +34,14 @@ export interface CharacterProfile {
   solveInfo: SolveInfo;
 }
 
-// 결과
+// 结果
 
-// 준비물
+// 准备物品
 export type SolveBefore = {
   coreGoalPoint: number[]; // not used
 };
 
-// 최적화 결과
+// 优化结果
 export type SolveAnswerScoreSet = {
   score: number;
   bestScore: number;
@@ -54,7 +54,7 @@ export type SolveAnswer = {
 export type AdditionalGemResult = Record<
   ArkGridAttr,
   Record<
-    string, // 10,17,17와 같이 corePointTuple을 문자열로 만든 것
+    string, // 如10,17,17这样将corePointTuple转为字符串
     {
       corePointTuple: [number, number, number];
       gems: ArkGridGem[];
@@ -75,7 +75,7 @@ export type SolveInfo = {
   after?: SolveAfter;
 };
 export function updateSolveAnswer(solveAnswer: SolveAnswer) {
-  // 현재 프로필의 solve after에 solve answer 설정
+  // 设置当前profile的solve after中的solve answer
   const profile = getCurrentProfile();
   if (!profile.solveInfo.after) {
     profile.solveInfo.after = {
@@ -87,7 +87,7 @@ export function updateSolveAnswer(solveAnswer: SolveAnswer) {
 }
 
 export function updateScoreSet(scoreSet: SolveAnswerScoreSet) {
-  // 현재 프로필의 solve after에 score set 설정
+  // 设置当前profile的solve after中的score set
   const profile = getCurrentProfile();
   if (!profile.solveInfo.after) {
     profile.solveInfo.after = {
@@ -101,7 +101,7 @@ export function updateScoreSet(scoreSet: SolveAnswerScoreSet) {
 export function updateAnswerCores(
   cores: Record<ArkGridAttr, Record<ArkGridCoreType, ArkGridCore | null>>
 ) {
-  // 현재 프로필의 solve after에 answer core 설정
+  // 设置当前profile的solve after中的answer core
   const profile = getCurrentProfile();
   if (!profile.solveInfo.after) {
     profile.solveInfo.after = {
@@ -113,7 +113,7 @@ export function updateAnswerCores(
 }
 
 export function updateAdditionalGemResult(additionalGemResult: AdditionalGemResult) {
-  // 현재 프로필의 solve after에 additionalGemResult 설정
+  // 设置当前profile的solve after中的additionalGemResult
   const profile = getCurrentProfile();
   if (!profile.solveInfo.after) {
     profile.solveInfo.after = {
@@ -125,7 +125,7 @@ export function updateAdditionalGemResult(additionalGemResult: AdditionalGemResu
 }
 
 export function updateNeedLauncherGem(needLauncherGem: NeedLauncherGem) {
-  // 현재 프로필의 solve after에 additionalGemResult 설정
+  // 设置当前profile的solve after中的needLauncherGem
   const profile = getCurrentProfile();
   if (!profile.solveInfo.after) {
     profile.solveInfo.after = {
@@ -154,16 +154,16 @@ export function initNewProfile(name: string): CharacterProfile {
 }
 
 export function migrateProfile(profile: Partial<CharacterProfile>) {
-  // 업데이트로 추가되는 required 필드를 추가
+  // 添加更新中新增的required字段
 
   // 1. profile.isSupporter
   if (profile.isSupporter === undefined) {
-    // console.log("isSupporter 정의 안돼있어서 추가!")
+    // console.log("isSupporter未定义，添加！")
     profile.isSupporter = false;
   }
   // 2. profile.solveInfo
   if (profile.solveInfo === undefined) {
-    // console.log(profile, "solveInfo추가!")
+    // console.log(profile, "添加solveInfo！")
     profile.solveInfo = {
       before: { coreGoalPoint: [0, 0, 0, 0, 0, 0] },
     };
@@ -173,10 +173,10 @@ export function migrateProfile(profile: Partial<CharacterProfile>) {
   for (const attr of Object.values(ArkGridAttrs)) {
     for (const ctype of Object.values(ArkGridCoreTypes)) {
       if (profile.cores) {
-        // 당연히 있겠지만...
+        // 虽然应该有...
         const core = profile.cores[attr][ctype];
         if (core && core.goalPoint === undefined) {
-          // console.log(core, "에 goalpoint 추가!")
+          // console.log(core, "添加goalpoint！")
           core.goalPoint = 0;
         }
       }
@@ -185,20 +185,20 @@ export function migrateProfile(profile: Partial<CharacterProfile>) {
 }
 
 export function getCurrentProfile() {
-  // 현재 프로필을 반드시 반환합니다.
-  // 프로필을 찾았다면 반환
+  // 必须返回当前profile。
+  // 找到profile则返回
   const profile = getProfile(currentProfileName.current);
   if (profile) return profile;
   else {
-    // 기본 프로필을 찾고 있으면 변경하고 반환
+    // 找到默认profile则更换并返回
     const defaultProfile = getProfile(DEFAULT_PROFILE_NAME);
     setCurrentProfileName(DEFAULT_PROFILE_NAME);
     if (defaultProfile) return defaultProfile;
 
-    // 기본 프로필이 없다면 생성 후 반환
+    // 没有默认profile则创建后返回
     const newDefaultProfile = initNewProfile(DEFAULT_PROFILE_NAME);
     if (!addNewProfile(newDefaultProfile)) {
-      throw Error('기본 프로필 생성 실패!');
+      throw Error('默认profile创建失败！');
     }
     return newDefaultProfile;
   }
@@ -218,11 +218,11 @@ export function deleteProfile(name: string) {
     setCurrentProfileName(profiles[index - 1].characterName);
   }
   profiles.splice(index, 1);
-  // 삭제한 프로필이 현재 선택된 프로필이면 초기화
+  // 删除的profile是当前选中的profile则初始化
 }
 
 export function updateProfileCharacterName(name: string) {
-  // 현재 프로필의 이름을 수정합니다.
+  // 修改当前profile的名字。
   const existProfile = appConfig.current.characterProfiles.findIndex(
     (p) => p.characterName === name
   );
@@ -235,7 +235,7 @@ export function addGem(gem: ArkGridGem) {
   const gems = getCurrentProfile().gems;
   const targetGems = gem.gemAttr == '질서' ? gems.orderGems : gems.chaosGems;
   gem.grade = determineGemGrade(gem.req, gem.point, gem.option1, gem.option2, gem.name);
-  // validate gem (안정인데 옵션 등)
+  // 验证gem（稳定但有选项等）
   targetGems.push(gem);
 }
 

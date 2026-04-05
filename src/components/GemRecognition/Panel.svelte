@@ -1,17 +1,27 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   import {
-    GemRecognitionLocaleTypes,
-    supportedGemRecognitionLocales,
     type ArkGridAttr,
     type GemRecognitionLocale,
+    GemRecognitionLocaleTypes,
     type LocalizationName,
     LostArkGradeTypes,
+    supportedGemRecognitionLocales,
   } from '../../lib/constants/enums';
+  import {
+    LErrorAlreadyRecording,
+    LErrorScreenPermissionDenied,
+    LErrorUnknown,
+    LErrorWorkerInitFailed,
+  } from '../../lib/constants/localization';
   import { CaptureController } from '../../lib/cv/captureController';
   import type { SnapshotResult } from '../../lib/cv/captureController';
-  import { type ArkGridGem, ArkGridGemOptionTypes, ArkGridGemSpecs } from '../../lib/models/arkGridGems';
+  import {
+    type ArkGridGem,
+    ArkGridGemOptionTypes,
+    ArkGridGemSpecs,
+  } from '../../lib/models/arkGridGems';
   import {
     appConfig,
     toggleDeferredScreenSharingInit,
@@ -48,9 +58,9 @@
     zh_cn: 'DEBUG',
   };
   const LHideScreen: LocalizationName = {
-    ko_kr: '공유 중인 화면 끄기',
-    en_us: 'Hide Sharing Screen',
-    zh_cn: '隐藏共享屏幕',
+    ko_kr: 'HideDEBUG',
+    en_us: 'HideDEBUG',
+    zh_cn: 'HideDEBUG',
   };
   const LSnapShot: LocalizationName = {
     ko_kr: '스냅샷',
@@ -77,7 +87,8 @@
   const LSupportedClient = $derived(
     {
       ko_kr: '지원 클라이언트: 한국어, 영어, 중국어 간체, 러시아어, 러시아 서버 중국어 번역판',
-      en_us: 'Supported Clients: Korean, English, Simplified Chinese, Russian, Russian Server (Chinese Translation)',
+      en_us:
+        'Supported Clients: Korean, English, Simplified Chinese, Russian, Russian Server (Chinese Translation)',
       zh_cn: '支持客户端：韩语、英语、简体中文、俄语、俄服汉化',
     }[locale]
   );
@@ -106,30 +117,28 @@
   let totalOrderGems = $state<ArkGridGem[]>([]);
   let totalChaosGems = $state<ArkGridGem[]>([]);
   let isRecording = $state<boolean>(false);
-  let isReady = $state<boolean>(false);       // 截图模式：已初始化可截图
+  let isReady = $state<boolean>(false);
   let isDebugging = $state<boolean>(false);
   let isLoading = $state<boolean>(false);
   let detectionMargin = $state<number>(2);
-  let snapCount = $state<number>(0);          // 已截图次数
+  let snapCount = $state<number>(0);
   let gemListElem: GemRecognitionGemList | null = null;
 
   let _captureController: CaptureController | null = null;
 
   /**
-   * 全局已添加的OCR内容键集合（跨位置去重）
-   * 每张截图中识别出的护石通过 name|optType1|optType2 去重（不含等级，避免OCR抖动）
+   * 已添加的护石 contentKey 集合（跨截图去重用）
    */
   const _globalContentKeys: Set<string> = new Set();
 
   /**
-   * contentKey → 已存储护石信息映射，用于去重判断和邻居上下文验证
-   * 当 contentKey 碰撞时，通过对比邻居哈希来判断是否为同一物理护石
+   * 已存储护石索引映射：contentKey → 索引
+   * 用于更新护石信息
    */
-  const _globalContentKeyIndex: Map<string, {
-    index: number;       // 在 totalGems 数组中的索引
-    frameHashes: string[]; // 该护石首次被添加时的完整帧哈希数组
-    pos: number;          // 该护石在帧内的位置(0-8)
-  }> = new Map();
+  const _globalContentKeyIndex: Map<string, number> = new Map();
+
+  /** 汉明距离阈值（4096位哈希中，不同位 <= 520 视为相同） */
+  const HAMMING_THRESHOLD = 520;
 
   async function getCaptureController() {
     if (_captureController) return _captureController;
@@ -141,7 +150,9 @@
    * 将韩语属性类型翻译为中文
    */
   function optZh(optType: string): string {
-    return ArkGridGemOptionTypes[optType as keyof typeof ArkGridGemOptionTypes]?.name?.zh_cn ?? optType;
+    return (
+      ArkGridGemOptionTypes[optType as keyof typeof ArkGridGemOptionTypes]?.name?.zh_cn ?? optType
+    );
   }
 
   /**
@@ -183,22 +194,57 @@
   }
 
   /**
-   * 将单帧识别结果合并到总列表（基于 contentKey 精确去重）
+   * 计算两个哈希的汉明距离
+   */
+  function hammingDistance(hash1: string, hash2: string): number {
+    if (!hash1 || !hash2) return 999;
+    if (hash1.length !== hash2.length) return 999;
+    let dist = 0;
+    for (let i = 0; i < hash1.length; i++) {
+      if (hash1[i] !== hash2[i]) dist++;
+    }
+    return dist;
+  }
+
+  /**
+   * 将单帧识别结果合并到总列表（简单的去重逻辑）
    *
    * 去重策略：
-   * contentKey 包含完整 9 个字段（名称、属性、意志力、点数、品质、两个选项的类型+等级）。
-   * 当 contentKey 完全匹配时，视为同一护石，直接覆盖更新。
-   * 不同物理护石恰好所有字段完全相同的概率极低，因此不需要额外的邻居哈希验证。
+   * 1. 同一张截图内：保留所有重复（你截图里有几个就是几个）
+   * 2. 跨截图去重：只要 contentKey 匹配就去重（不管位置）
+   *
+   * 实现方式：
+   * - 先统计这张截图内每个 contentKey 出现的次数
+   * - 如果是这张截图内第 1 次出现，且已存在 → 去重
+   * - 如果是这张截图内第 2+ 次出现 → 保留（同帧内重复）
+   *
+   * 兜底方案：如果发现被误删，可以点击护石卡片上的「📋」按钮手动添加！
    */
   function applySnapshotResult(result: SnapshotResult) {
     const totalGems = result.gemAttr == '질서' ? totalOrderGems : totalChaosGems;
-    const frameHashes = result.gemHashes ?? [];
 
-    console.log(`[截图识别] ${result.gemAttr === '질서' ? '秩序' : '混沌'} | 共${result.gems.length}个`, JSON.stringify(result.gems.map((g, idx) => ({
-      idx,
-      zh: gemLog(g),
-      raw: `${g.name} | ${g.grade} | ${g.option1.optionType} Lv.${g.option1.value} / ${g.option2.optionType} Lv.${g.option2.value}`,
-    })), null, 2));
+    console.log(
+      `[截图识别] ${result.gemAttr === '질서' ? '秩序' : '混沌'} | 共${result.gems.length}个`,
+      JSON.stringify(
+        result.gems.map((g, idx) => ({
+          idx,
+          zh: gemLog(g),
+          raw: `${g.name} | ${g.grade} | ${g.option1.optionType} Lv.${g.option1.value} / ${g.option2.optionType} Lv.${g.option2.value}`,
+        })),
+        null,
+        2
+      )
+    );
+
+    // 第一步：统计这张截图内每个 contentKey 出现的次数
+    const countInFrame: Map<string, number> = new Map();
+    for (const gem of result.gems) {
+      const key = gemContentKey(gem);
+      countInFrame.set(key, (countInFrame.get(key) || 0) + 1);
+    }
+
+    // 第二步：记录当前处理到第几次出现
+    const currentCount: Map<string, number> = new Map();
 
     let addedAny = false;
     let newCount = 0;
@@ -206,24 +252,40 @@
 
     for (let i = 0; i < result.gems.length; i++) {
       const gem = result.gems[i];
-      const key = gemContentKey(gem);
+      const contentKey = gemContentKey(gem);
+      const pos = i;
 
-      const existingEntry = _globalContentKeyIndex.get(key);
-      if (existingEntry) {
-        // contentKey 命中 → 同一护石（覆盖更新最新OCR值）
-        const old = totalGems[existingEntry.index];
-        console.log(`  [命中✓] pos=${i} | ${gemLog(gem)} → 覆盖旧值 (${gemLog(old)})`);
-        totalGems[existingEntry.index] = gem;
-        // 更新帧哈希（用于后续可能的邻居比较）
-        existingEntry.frameHashes = [...frameHashes];
-        existingEntry.pos = i;
-        updateCount++;
-        addedAny = true;
+      const totalAppearances = countInFrame.get(contentKey) || 1;
+      const thisAppearance = (currentCount.get(contentKey) || 0) + 1;
+      currentCount.set(contentKey, thisAppearance);
+
+      if (thisAppearance === 1) {
+        // ========== 这张截图内第 1 次出现 ==========
+        if (_globalContentKeys.has(contentKey)) {
+          // → 跨截图重复，去重（更新值）
+          const existingIndex = _globalContentKeyIndex.get(contentKey);
+          if (existingIndex !== undefined) {
+            const old = totalGems[existingIndex];
+            console.log(`  [去重✓] pos=${pos} | ${gemLog(gem)} → 更新旧值 (${gemLog(old)})`);
+            totalGems[existingIndex] = gem;
+            updateCount++;
+            addedAny = true;
+          }
+        } else {
+          // → 新增
+          console.log(`  [新增] pos=${pos} | ${gemLog(gem)} | contentKey=${contentKey}`);
+          _globalContentKeys.add(contentKey);
+          _globalContentKeyIndex.set(contentKey, totalGems.length);
+          totalGems.push(gem);
+          newCount++;
+          addedAny = true;
+        }
       } else {
-        // 新护石：添加到列表
-        console.log(`  [新增] pos=${i} | ${gemLog(gem)} | key=${key}`);
-        _globalContentKeys.add(key);
-        _globalContentKeyIndex.set(key, { index: totalGems.length, frameHashes: [...frameHashes], pos: i });
+        // ========== 这张截图内第 2+ 次出现 ==========
+        // → 保留！（同帧内重复）
+        console.log(`  [保留] pos=${pos} | ${gemLog(gem)} (同帧内第${thisAppearance}次)`);
+        _globalContentKeys.add(contentKey);
+        _globalContentKeyIndex.set(contentKey, totalGems.length);
         totalGems.push(gem);
         newCount++;
         addedAny = true;
@@ -232,6 +294,7 @@
 
     if (newCount > 0 || updateCount > 0) {
       console.log(`  [去重统计] 新增:${newCount} 更新:${updateCount} 总数:${totalGems.length}`);
+      console.log(`  [提示] 如果发现被误删，可以点击护石卡片上的「📋」按钮复制！`);
     }
 
     if (addedAny) {
@@ -247,19 +310,12 @@
   let _prevHashes: string[] | null = null;
   let _lastAddedSequence: string | null = null;
   const _posSeenHashes: Map<number, string[]> = new Map();
-  const HAMMING_THRESHOLD = 520;
 
-  function hammingDistance(hash1: string, hash2: string): number {
-    if (!hash1 || !hash2) return 999;
-    if (hash1.length !== hash2.length) return 999;
-    let dist = 0;
-    for (let i = 0; i < hash1.length; i++) {
-      if (hash1[i] !== hash2[i]) dist++;
-    }
-    return dist;
-  }
-
-  function applyCurrentGems(gemAttr: ArkGridAttr, currentGems: ArkGridGem[], gemHashes: string[] = []) {
+  function applyCurrentGems(
+    gemAttr: ArkGridAttr,
+    currentGems: ArkGridGem[],
+    gemHashes: string[] = []
+  ) {
     const totalGems = gemAttr == '질서' ? totalOrderGems : totalChaosGems;
     let isNearIdentical = false;
     if (_prevHashes !== null && gemHashes.length > 0) {
@@ -272,7 +328,7 @@
             if (diffCount > 1) break;
           }
         }
-        isNearIdentical = (diffCount <= 1);
+        isNearIdentical = diffCount <= 1;
       }
     }
     _prevHashes = [...gemHashes];
@@ -280,14 +336,31 @@
     const hashKey = gemHashes.join('|');
     if (_lastAddedSequence === hashKey && isNearIdentical) return;
 
-    console.log(`[护石识别] ${gemAttr === '질서' ? '秩序' : '混沌'} | 共${currentGems.length}个`, JSON.stringify(currentGems.map((g, idx) => ({
-      idx,
-      name: g.name,
-      grade: g.grade,
-      opt1: `${g.option1.optionType} Lv.${g.option1.value}`,
-      opt2: `${g.option2.optionType} Lv.${g.option2.value}`,
-      hash: gemHashes[idx]?.substring(0, 20),
-    })), null, 2));
+    console.log(
+      `[护石识别] ${gemAttr === '질서' ? '秩序' : '混沌'} | 共${currentGems.length}个`,
+      JSON.stringify(
+        currentGems.map((g, idx) => ({
+          idx,
+          name: g.name,
+          grade: g.grade,
+          opt1: `${g.option1.optionType} Lv.${g.option1.value}`,
+          opt2: `${g.option2.optionType} Lv.${g.option2.value}`,
+          hash: gemHashes[idx]?.substring(0, 20),
+        })),
+        null,
+        2
+      )
+    );
+
+    // 第一步：统计这张截图内每个 contentKey 出现的次数
+    const countInFrame: Map<string, number> = new Map();
+    for (const gem of currentGems) {
+      const key = gemContentKey(gem);
+      countInFrame.set(key, (countInFrame.get(key) || 0) + 1);
+    }
+
+    // 第二步：记录当前处理到第几次出现
+    const currentCount: Map<string, number> = new Map();
 
     let addedAny = false;
     for (let i = 0; i < currentGems.length; i++) {
@@ -296,15 +369,22 @@
       gem.visualHash = hash;
       const contentKey = gemContentKey(gem);
 
-      if (_globalContentKeys.has(contentKey)) continue;
+      const totalAppearances = countInFrame.get(contentKey) || 1;
+      const thisAppearance = (currentCount.get(contentKey) || 0) + 1;
+      currentCount.set(contentKey, thisAppearance);
 
-      if (!isHashSeenAtPosition(i, hash)) {
-        registerHashAtPosition(i, hash);
+      if (thisAppearance === 1) {
+        // ========== 这张截图内第 1 次出现 ==========
+        if (_globalContentKeys.has(contentKey)) continue;
         _globalContentKeys.add(contentKey);
+        _globalContentKeyIndex.set(contentKey, totalGems.length);
         totalGems.push(gem);
         addedAny = true;
       } else {
+        // ========== 这张截图内第 2+ 次出现 ==========
+        // → 保留！（同帧内重复）
         _globalContentKeys.add(contentKey);
+        _globalContentKeyIndex.set(contentKey, totalGems.length);
         totalGems.push(gem);
         addedAny = true;
       }
@@ -332,7 +412,6 @@
     const list = _posSeenHashes.get(pos);
     if (list) {
       list.push(hash);
-      // 防止无界增长：每个位置最多保留最近 50 条哈希记录
       if (list.length > 50) list.shift();
     } else _posSeenHashes.set(pos, [hash]);
   }
@@ -340,7 +419,9 @@
   // ==================== UI事件处理 ====================
 
   function updateRecognitionLocale(event: Event) {
-    setGemRecognitionLocale((event.currentTarget as HTMLSelectElement).value as GemRecognitionLocale);
+    setGemRecognitionLocale(
+      (event.currentTarget as HTMLSelectElement).value as GemRecognitionLocale
+    );
   }
 
   /** 初始化：启动屏幕共享并进入ready状态 */
@@ -358,12 +439,19 @@
       isLoading = false;
     };
     controller.onStartCaptureError = (err) => {
-      let msg = '알 수 없는 에러가 발생하였습니다.';
+      let msg = LErrorUnknown[locale];
       switch (err) {
-        case 'recording': msg = '이미 녹화 중입니다.'; break;
-        case 'screen-permission-denied': msg = '화면 공유를 거부하였습니다.'; break;
-        case 'worker-init-failed': msg = '분석 엔진을 준비하는데 실패하였습니다.'; break;
-        default: msg = '알 수 없는 에러가 발생하였습니다';
+        case 'recording':
+          msg = LErrorAlreadyRecording[locale];
+          break;
+        case 'screen-permission-denied':
+          msg = LErrorScreenPermissionDenied[locale];
+          break;
+        case 'worker-init-failed':
+          msg = LErrorWorkerInitFailed[locale];
+          break;
+        default:
+          msg = LErrorUnknown[locale];
       }
       window.alert(msg);
       isLoading = false;
@@ -372,7 +460,6 @@
       isReady = true;
     };
     controller.onLevelRoiDump = (images, labels) => {
-      // 将等级 ROI 区域导出为 PNG 文件下载（用于重新制作模板）
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
         const label = labels[i] ?? `roi_${i}`;
@@ -382,7 +469,6 @@
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           if (ctx) ctx.drawImage(img, 0, 0);
-          // 转为 blob 并触发下载
           canvas.toBlob((blob) => {
             if (blob) {
               const url = URL.createObjectURL(blob);
@@ -425,11 +511,13 @@
   async function startGemCapture() {
     await initCapture();
     const controller = await getCaptureController();
-    // 等待 ready 后自动进入 recording loop
+    controller.onFrameDone = (gemAttr, gems, gemHashes) => {
+      applyCurrentGems(gemAttr, gems, gemHashes);
+    };
     controller.onReady = () => {
       isReady = true;
       isRecording = true;
-      controller.startRecording(); // 进入流式循环
+      controller.startRecording();
     };
   }
 
@@ -440,7 +528,6 @@
       isRecording = false;
       isReady = false;
       debugCanvas?.getContext('2d')?.reset();
-      // 释放 Controller 引用，让 GC 回收所有关联资源
       _captureController = null;
     }
   }
@@ -476,8 +563,30 @@
     snapCount = 0;
   }
 
+  onMount(() => {
+    const handleBeforeUnload = () => {
+      if (_captureController) {
+        _captureController.stopCaptureImmediate();
+        _captureController = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && _captureController && !_captureController.isIdle()) {
+        stopGemCapture();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  });
+
   onDestroy(async () => {
-    // 只有当 Controller 还存在时才停止（避免创建新实例后立刻销毁）
     if (_captureController) {
       await _captureController.stopCapture();
       _captureController = null;
@@ -493,7 +602,11 @@
   {/if}
   <div class="title">
     <span>{LTitle[locale]}</span>
-    <div class="status-dot" class:online={isRecording || isReady} class:offline={!isRecording && !isReady}></div>
+    <div
+      class="status-dot"
+      class:online={isRecording || isReady}
+      class:offline={!isRecording && !isReady}
+    ></div>
     <span class="tooltip">
       <i class="fa-solid fa-circle-info info-icon"></i>
       <span class="tooltip-text">
@@ -522,7 +635,9 @@
             disabled={isRecording || isReady || isLoading}
           >
             {#each supportedGemRecognitionLocales as targetLocale}
-              <option value={targetLocale}>{GemRecognitionLocaleTypes[targetLocale].name[locale]}</option>
+              <option value={targetLocale}
+                >{GemRecognitionLocaleTypes[targetLocale].name[locale]}</option
+              >
             {/each}
           </select>
           <small>{LGameEnvironmentHint}</small>
@@ -530,8 +645,7 @@
 
         <!-- 连接/断开按钮 -->
         {#if !isReady && !isRecording}
-          <button onclick={initCapture} data-track="init-capture"
-            >🖥️ {LStartCapture[locale]}</button
+          <button onclick={initCapture} data-track="init-capture">🖥️ {LStartCapture[locale]}</button
           >
         {:else}
           <button onclick={stopGemCapture}>🖥️ {LStopCapture[locale]}</button>
@@ -544,7 +658,7 @@
           </button>
         {/if}
 
-        <button class:active={isDebugging} onclick={toggleDrawDebug}>
+        <button class:active={isDebugging} onclick={toggleDrawDebug} disabled={true}>
           🔨 {isDebugging ? LHideScreen[locale] : LShowScreen[locale]}
         </button>
         <button onclick={clearGems} disabled={totalOrderGems.length + totalChaosGems.length === 0}>
@@ -598,7 +712,6 @@
 </div>
 
 <style>
-  /* 오버레이 + 중앙 정렬 */
   .panel {
     position: relative;
   }

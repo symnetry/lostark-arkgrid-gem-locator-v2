@@ -29,9 +29,10 @@
         안 쓰는 아크 그리드 프리셋으로 전환하는 것으로 손쉽게 젬을 해제할 수 있습니다.
       </p>
       <p>2. [🖥️ 화면 공유 시작] 버튼을 통해 로스트아크 게임 화면을 공유해주세요</p>
-      <p>3. 스크롤을 내리면서 인식된 젬이 목록에 추가되는 것을 확인해주세요.</p>
+      <p>3. 게임에서 젬 목록을 열고 "보석"을 클릭해 작은 젬 목록을 보여주세요.</p>
+      <p>4. 웹 페이지의 스냅샷 버튼을 클릭하고, 모든 젬을 수집할 때까지 반복해주세요.</p>
       <p>
-        4. 수집된 젬의 개수를 확인하고, <b>질서와 혼돈 모든 젬</b>이 수집되었으면 [✅ 현재 프로필에
+        5. 수집된 젬의 개수를 확인하고, <b>질서와 혼돈 모든 젬</b>이 수집되었으면 [✅ 현재 프로필에
         반영] 버튼을 눌러 프로필에 저장해주세요.
       </p>
       <br />
@@ -65,9 +66,10 @@
           You can switch to an unused Ark Grid preset to quickly unequip all astrogems.
         </p>
         <p>2. Press the [🖥️ Start Screen Sharing] button to share your Lost Ark game screen.</p>
-        <p>3. Scroll down and check that recognized astrogems are being added to the list.</p>
+        <p>3. In the game, open the gem list and click "Gems" to show the small gem interface.</p>
+        <p>4. Then click the snapshot button on the webpage, and repeat until all gems are captured.</p>
         <p>
-          4. Verify the total number of collected astrogems. Once <b
+          5. Verify the total number of collected astrogems. Once <b
             >all Order and Chaos astrogems</b
           >
           have been collected, click the [✅ Apply to Current Profile] button to save them to your profile.
@@ -107,9 +109,10 @@
           您可以切换到未使用的方舟棋盘预设来快速卸下所有护石。
         </p>
         <p>2. 点击 [🖥️ 开始屏幕共享] 按钮来共享失落的方舟游戏画面。</p>
-        <p>3. 向下滚动，确认识别到的护石正在添加到列表中。</p>
+        <p>3. 在游戏中打开护石界面并点击"宝石"展示小护石界面。</p>
+        <p>4. 然后点击网页的截图识别，重复到截取结束。</p>
         <p>
-          4. 确认收集的护石总数。一旦<b>秩序和混沌的所有护石</b>都已收集，点击 [✅ 应用到当前配置]
+          5. 确认收集的护石总数。一旦<b>秩序和混沌的所有护石</b>都已收集，点击 [✅ 应用到当前配置]
           按钮将它们保存到您的配置中。
         </p>
         <br />

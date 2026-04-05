@@ -1,6 +1,6 @@
 import {
-  DEFAULT_GEM_RECOGNITION_LOCALE,
   type ArkGridAttr,
+  DEFAULT_GEM_RECOGNITION_LOCALE,
   type GemRecognitionLocale,
 } from '../constants/enums';
 import { type ArkGridGem } from '../models/arkGridGems';
@@ -19,17 +19,17 @@ type StartCaptureErrorType = (typeof START_CAPTURE_ERROR_TYPES)[number];
 export interface SnapshotResult {
   gemAttr: ArkGridAttr;
   gems: ArkGridGem[];
-  /** 每个护石对应的感知哈希(64字符'0'/'1'字符串)，与gems数组一一对应，用于邻居上下文去重 */
+  /** 每个护石对应的感知哈希(64字符'0'/'1'字符串，与gems数组一一对应，用于邻居上下文去重 */
   gemHashes?: string[];
 }
 
 export class CaptureController {
   private state: 'idle' | 'loading' | 'ready' | 'recording' | 'closing' = 'idle';
 
-  // 화면 녹화 기능들
+  // 屏幕录制相关功能
   private reader: ReadableStreamDefaultReader<VideoFrame> | null = null;
   private track: MediaStreamVideoTrack | null = null;
-  private mediaStream: MediaStream | null = null;  // 持有MediaStream引用以便完整释放
+  private mediaStream: MediaStream | null = null; // 持有MediaStream引用以便完整释放
 
   // web worker
   private worker: Worker | null = null;
@@ -40,20 +40,21 @@ export class CaptureController {
   private drawDebug: boolean = false;
   private debugCanvas: HTMLCanvasElement | null = null;
 
-  // 👇 기다리는 Promise들의 resolver
+  // 👇 等待中的Promise的resolver
   private awaitWorkerInitialization: {
     resolve: () => void;
     reject: (reason: StartCaptureErrorType) => void;
   } | null = null;
   private awaitFrameCompletion: (() => void) | null = null;
 
-  // 外部 등록 콜백
-  onFrameDone: ((gemAttr: ArkGridAttr, gems: ArkGridGem[], gemHashes?: string[]) => void) | null = null; // 분석 완료(流式模式)
+  // 外部注册的回调
+  onFrameDone: ((gemAttr: ArkGridAttr, gems: ArkGridGem[], gemHashes?: string[]) => void) | null =
+    null; // 分析完成(流式模式)
   onSnapshotDone: ((result: SnapshotResult) => void) | null = null; // 单帧识别完成(截图模式)
-  onLoad: (() => void) | null = null; // worker 준비 완료
-  onStartCaptureError: ((err: StartCaptureErrorType) => void) | null = null; // worker 준비 실패
-  onReady: (() => void) | null = null; // 프레임 소비 완료 / 就绪可截图
-  onStop: (() => void) | null = null; // 녹화 중단
+  onLoad: (() => void) | null = null; // worker准备完成
+  onStartCaptureError: ((err: StartCaptureErrorType) => void) | null = null; // worker准备失败
+  onReady: (() => void) | null = null; // 帧读取完成 / 就绪可截图
+  onStop: (() => void) | null = null; // 录制中断
   onLevelRoiDump: ((images: ImageBitmap[], labels: string[]) => void) | null = null; // 等级ROI导出(Debug模式)
 
   constructor(debugCanvas?: HTMLCanvasElement | null) {
@@ -84,22 +85,22 @@ export class CaptureController {
         this.awaitFrameCompletion?.();
         this.awaitFrameCompletion = null;
 
-        // 外部에서 등록된 콜백 불러줌
+        // 调用外部注册的回调
 
         /*
-        queueMicrotask(() => { ... }) 안의 코드는:
+        queueMicrotask(() => { ... }) 内的代码:
 
-        지금 실행 ❌
-        현재 call stack 끝난 뒤 실행 ⭕
+        现在不执行 ❌
+        当前调用栈结束后执行 ⭕
 
-        TypeScript는 이렇게 생각해:
+        TypeScript 会这样想:
 
-        "이 콜백이 실행될 때까지
-        this.onFrameDone이나 data.result가
-        바뀌지 않는다는 보장이 없다."
+        "在这个回调执行之前，
+        无法保证 this.onFrameDone 或 data.result
+        不会被修改。"
         */
         if (this.state === 'recording') {
-          // recording일 때에만 onFrameDone 불러줌
+          // 只有在recording时才调用onFrameDone
           const result = data.result;
           const onFrameDone = this.onFrameDone;
           if (onFrameDone && result) {
@@ -108,12 +109,16 @@ export class CaptureController {
             });
           }
         } else if (this.state === 'ready') {
-          // ready(截图模式)일 때 onSnapshotDone 불러줌
+          // ready(截图模式)时调用onSnapshotDone
           const result = data.result;
           const onSnapshotDone = this.onSnapshotDone;
           if (onSnapshotDone && result) {
             queueMicrotask(() => {
-              onSnapshotDone({ gemAttr: result.gemAttr, gems: result.gems, gemHashes: result.gemHashes });
+              onSnapshotDone({
+                gemAttr: result.gemAttr,
+                gems: result.gems,
+                gemHashes: result.gemHashes,
+              });
             });
           }
         }
@@ -148,7 +153,7 @@ export class CaptureController {
           queueMicrotask(() => this.onLevelRoiDump!(images, labels));
         } else {
           // 没有注册回调时自动释放
-          data.images?.forEach(img => img.close());
+          data.images?.forEach((img) => img.close());
         }
         break;
     }
@@ -163,7 +168,7 @@ export class CaptureController {
       if (!stream) {
         throw Error('No stream');
       }
-      this.mediaStream = stream;  // 持有引用以便完整释放
+      this.mediaStream = stream; // 持有引用以便完整释放
       this.track = stream.getVideoTracks()[0];
       if (!this.track) {
         throw Error('No video track');
@@ -177,7 +182,7 @@ export class CaptureController {
   }
 
   isStartCaptureError(err: unknown): err is StartCaptureErrorType {
-    // 에러가 내가 발생시킨 StartCaptureErrorType중 하나인지?
+    // 错误是否是我抛出的StartCaptureErrorType之一?
     return (
       typeof err === 'string' && START_CAPTURE_ERROR_TYPES.includes(err as StartCaptureErrorType)
     );
@@ -191,7 +196,7 @@ export class CaptureController {
     }
 
     if (this.isStartCaptureError(err)) {
-      return err; // 🔥 그대로 통과
+      return err; // 🔥 直接传递
     }
 
     return 'unknown';
@@ -201,29 +206,29 @@ export class CaptureController {
     recognitionLocale: GemRecognitionLocale,
     deferDisplayRequest: boolean = false
   ) {
-    // idle 상태에서만 가능
-    // 녹화를 시작합니다.
-    // worker를 생성하고 어셋 로드를 시킨 뒤, 사용자에게 화면 공유를 요청합니다.
-    // 둘 다 완료되면 ready상태로 전환 (loop는 별도로 startRecording 호출 필요)
+    // 只有在idle状态下才可以
+    // 开始录制。
+    // 创建worker并加载资源后，向用户请求屏幕共享。
+    // 两者都完成后切换到ready状态（循环需要另外调用startRecording）
 
     try {
       if (this.state !== 'idle') {
         throw 'recording' satisfies StartCaptureErrorType;
       }
 
-      // loading으로 전환 (lock)
+      // 切换到loading状态（加锁）
       this.state = 'loading';
       this.recognitionLocale = recognitionLocale;
 
-      // worker 생성 이후 handler 등록
+      // worker创建后注册handler
       if (!this.worker) {
         this.worker = new Worker(new URL('./captureWorker.ts', import.meta.url), {
           type: 'module',
         });
         this.worker.onmessage = this.handleWorkerMessage.bind(this);
       }
-      // worker의 init을 기다리는 promise 만든 후 init 요청 보냄
-      // (worker의 응답에 따라서 reject될 수도 있음!)
+      // 创建等待worker初始化的promise后发送init请求
+      // （根据worker的响应也可能会reject！）
       const waitForInit = new Promise<void>((resolve, reject) => {
         this.awaitWorkerInitialization = { resolve, reject };
       });
@@ -233,23 +238,23 @@ export class CaptureController {
         await waitForInit;
         await this.requestDisplayMedia();
       } else {
-        // 초기화되는 동안 사용자에게 화면 공유 요청하고 둘을 모두 기다림
+        // 初始化期间向用户请求屏幕共享，两者都等待
         await Promise.all([this.requestDisplayMedia(), waitForInit]);
       }
 
-      // 완료되면 reader가 설정되어서 읽을 수 있음
+      // 完成后reader已设置可以读取
       if (!this.reader) {
         throw Error('reader is not ready');
       }
 
-      // 첫 프레임을 읽을 수 있을 때까지 대기
+      // 等待直到可以读取第一帧
       const { value, done } = await this.reader.read();
       if (done) {
         throw Error('Failed to read even a frame');
       }
       value?.close();
 
-      // 준비 완료 → ready 상태 (loop는 별도 startRecording에서 실행)
+      // 准备完成 → ready状态（循环在另外的startRecording中执行）
       this.state = 'ready';
       const onReady = this.onReady;
       if (onReady) {
@@ -258,11 +263,11 @@ export class CaptureController {
         });
       }
     } catch (err) {
-      // 초기화 도중 에러 발생하면 분류해서 onStartCaptureError 불러줌
+      // 初始化过程中发生错误则分类后调用onStartCaptureError
       const classified = this.classifyCaptureError(err);
       this.onStartCaptureError?.(classified);
     } finally {
-      // 시작에 실패했을 경우 다시 idle로
+      // 开始失败的话回到idle
       if (this.state == 'loading') {
         this.state = 'idle';
       }
@@ -309,33 +314,36 @@ export class CaptureController {
       };
 
       // 读取一帧
-      this.reader.read().then(({ value, done }) => {
-        if (done || !value) {
+      this.reader
+        .read()
+        .then(({ value, done }) => {
+          if (done || !value) {
+            clearTimeout(timeout);
+            if (!resolved) {
+              resolved = true;
+              reject(Error('Stream ended'));
+            }
+            return;
+          }
+          // 发送给worker分析
+          this.worker!.postMessage(
+            {
+              type: 'frame',
+              frame: value,
+              drawDebug: this.drawDebug,
+              detectionMargin: this.detectionMargin,
+              recognitionLocale: this.recognitionLocale,
+            } satisfies CaptureWorkerRequest,
+            [value]
+          );
+        })
+        .catch((err) => {
           clearTimeout(timeout);
           if (!resolved) {
             resolved = true;
-            reject(Error('Stream ended'));
+            reject(err);
           }
-          return;
-        }
-        // 发送给worker分析
-        this.worker!.postMessage(
-          {
-            type: 'frame',
-            frame: value,
-            drawDebug: this.drawDebug,
-            detectionMargin: this.detectionMargin,
-            recognitionLocale: this.recognitionLocale,
-          } satisfies CaptureWorkerRequest,
-          [value]
-        );
-      }).catch((err) => {
-        clearTimeout(timeout);
-        if (!resolved) {
-          resolved = true;
-          reject(err);
-        }
-      });
+        });
     });
   }
 
@@ -344,7 +352,7 @@ export class CaptureController {
     const FRAME_INTERVAL_MS = 200;
     let lastFrameTime = 0;
 
-    // state가 recording이라면, reader로부터 프레임을 읽어서 worker에게 전달 및 결과를 기다린다.
+    // 如果state是recording，就从reader读取帧，传递给worker并等待结果
     while (this.state == 'recording') {
       if (!this.reader) {
         throw Error('reader not exists');
@@ -355,14 +363,14 @@ export class CaptureController {
         const result = await this.reader.read();
         value = result.value;
         const done = result.done;
-        if (done) break; // 사용자가 화면 공유 중단시 여기서 break
+        if (done) break; // 用户中断屏幕共享时在这里break
         if (!value) break;
 
-        // 분석이 끝나면 resolve되는 promise 생성
+        // 分析完成后resolve的promise创建
         const waitForAnalysis = new Promise<void>((resolve) => {
           this.awaitFrameCompletion = resolve;
         });
-        // 현재 frame을 postMessage
+        // 当前frame通过postMessage发送
         this.worker.postMessage(
           {
             type: 'frame',
@@ -374,7 +382,7 @@ export class CaptureController {
           [value]
         );
         value = undefined;
-        // 주의: value 소유권은 worker에게 넘어갔으니 더 이상 건드리면 안 되기에 undefined
+        // 注意：value的所有权已经转移给worker了，所以不能再碰了，设为undefined
         await waitForAnalysis;
 
         // 帧率限制：如果处理太快，等待到下一帧间隔
@@ -384,11 +392,11 @@ export class CaptureController {
         }
         lastFrameTime = performance.now();
       } finally {
-        // 모종의 사유로 value의 소유권이 넘어가지 않았으면 controller에서 종료
+        // 如果某种原因value的所有权没有转移，就由controller关闭
         value?.close();
       }
     }
-    // loop가 탈출되면 idle로 설정
+    // loop退出后设为idle
     await this.cleanup();
     const onStop = this.onStop;
     if (onStop) {
@@ -398,15 +406,50 @@ export class CaptureController {
     }
   }
 
+  /**
+   * 同步立即停止所有资源（用于 beforeunload 等紧急情况）
+   * 不等待 Promise，立即释放所有可释放的资源
+   */
+  stopCaptureImmediate() {
+    if (this.state === 'idle') return;
+
+    // 立即停止 MediaStream 轨道
+    this.track?.stop();
+    this.track = null;
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((t) => t.stop());
+      this.mediaStream = null;
+    }
+
+    // 立即取消 reader
+    if (this.reader) {
+      try {
+        this.reader.cancel();
+      } catch {}
+      this.reader = null;
+    }
+
+    // 立即终止 Worker（不等待清理）
+    if (this.worker) {
+      try {
+        this.worker.postMessage({ type: 'stop' });
+      } catch {}
+      this.worker.terminate();
+      this.worker = null;
+    }
+
+    this.state = 'idle';
+  }
+
   async stopCapture() {
-    // 위 루프에서 read나 waitForAnalysis같은 Promise는 취소할 수 없기 때문에,
-    // 애초에 promise를 만들 때부터 취소 신호를 가진 Promise와 race 시켜야 한다.
-    // (취소 신호를 가진 Promise가 먼저 reject되면 원본은 기다리지 않고 탈출하기 때문에 취소 효과가 됨)
-    // 너무 장황해지는 거 같아서 loop 종료로...
+    // 上面的循环中read或waitForAnalysis这样的Promise是不能取消的，
+    // 所以从一开始创建promise的时候就应该和带取消信号的Promise进行race。
+    // （带取消信号的Promise先reject的话，原Promise就不用等了，这样就有取消效果了）
+    // 感觉太冗长了，所以就用loop结束的方式...
     if (this.state === 'recording') {
-      this.state = 'closing'; // 추후 loop 탈출 이후 idle로 가는 것을 기대
+      this.state = 'closing'; // 之后loop退出后期待回到idle
     } else if (this.state === 'ready' || this.state === 'loading') {
-      // ready/loading 상태에서도 정지 가능
+      // ready/loading状态下也可以停止
       await this.cleanup();
       this.state = 'idle';
     }
@@ -418,10 +461,12 @@ export class CaptureController {
     this.track = null;
     // 停止mediaStream所有轨道（音频+视频），确保完全释放
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(t => t.stop());
+      this.mediaStream.getTracks().forEach((t) => t.stop());
       this.mediaStream = null;
     }
-    try { await this.reader?.cancel(); } catch {}
+    try {
+      await this.reader?.cancel();
+    } catch {}
     this.reader = null;
     await this.destroyWorker();
   }
@@ -432,14 +477,14 @@ export class CaptureController {
         // 先发送 stop 消息让 Worker 内部清理
         this.worker.postMessage({ type: 'stop' });
         // 给一点时间让 Worker 完成清理（200ms）
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       } catch (e) {
         // 忽略错误
       }
       // 强制终止 Worker
       this.worker.terminate();
       this.worker = null;
-      
+
       // 尝试触发垃圾回收（浏览器可能忽略，但尽力而为）
       if ('gc' in window) {
         try {

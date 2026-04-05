@@ -14,16 +14,16 @@ export function showMatch(
   }
 ) {
   if (!debugCtx) return;
-  // 디버깅용
+  // 用于调试
   const rectLineWidth = option?.rectLineWidth ?? 1;
   debugCtx.lineWidth = rectLineWidth;
 
-  // 1. roi 표시
+  // 1. 显示 roi
   debugCtx.lineWidth = 1;
   debugCtx.strokeStyle = 'white';
   debugCtx.strokeRect(roi.x, roi.y, roi.width, roi.height);
 
-  // 탐지된 영역 표시
+  // 显示检测到的区域
   const rect = {
     x: matchingResult.loc.x,
     y: matchingResult.loc.y,
@@ -38,9 +38,9 @@ export function showMatch(
   debugCtx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 
   const fontSize = option?.fontSize ?? 12;
-  debugCtx.font = `${fontSize}px Arial`; // 폰트 설정
+  debugCtx.font = `${fontSize}px Arial`; // 字体设置
   debugCtx.fillStyle = option?.fontColor ?? 'white';
-  debugCtx.textBaseline = 'top'; // y 기준을 rect.y로 맞춤
+  debugCtx.textBaseline = 'top'; // y 基准对齐到 rect.y
   const debugMsg = `${matchingResult.key} ${matchingResult.score.toFixed(2)}`;
   debugCtx.fillText(debugMsg, roi.x + rectLineWidth, roi.y + rectLineWidth);
 }

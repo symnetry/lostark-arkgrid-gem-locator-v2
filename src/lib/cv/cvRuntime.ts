@@ -1,5 +1,5 @@
-// window.cv로 초기화할 수 없음
-// 반드시 worker 내에서만 사용
+// 无法使用 window.cv 初始化
+// 必须仅在 worker 内使用
 import cvModule from '@techstark/opencv-js';
 import type { CV } from '@techstark/opencv-js';
 

@@ -8,7 +8,7 @@ export type GemSetPackProgress = {
 type GemSetPackProgressCallback = (progress: GemSetPackProgress) => void;
 
 export function getMaxStat(gss: GemSet[], statType: 'att' | 'skill' | 'boss') {
-  // 주어진 GemSet[]에서 가장 높은 statType의 값을 가져옵니다.
+  // 从给定的 GemSet[] 中获取最高的 statType 值。
   let result = 0;
   for (const gs of gss) {
     if (gs[statType] > result) {
@@ -19,7 +19,7 @@ export function getMaxStat(gss: GemSet[], statType: 'att' | 'skill' | 'boss') {
 }
 
 export function getPossibleGemSets(core: Core, gems: Gem[]): GemSet[] {
-  // 주어진 gems을 사용해서 요구하는 energy와 point를 모두 충족하는 집합을 반환합니다.
+  // 使用给定的 gems，返回满足所有要求 energy 和 point 的集合。
   const n = gems.length;
   const g = [...gems].sort((a, b) => a.req - b.req);
   const energy = core.energy;
@@ -76,7 +76,7 @@ export function getBestGemSetPacks(
   const [gss1, gss2, gss3] = gssList;
 
   let answer = [];
-  let targetMin = 0; // 현재까지 찾은 배치 중 전투력 범위의 하한(min)의 가장 큰 값
+  let targetMin = 0; // 目前找到的配置中战斗力范围下限(min)的最大值
 
   // validate
   [gss1, gss2, gss3].forEach((gss) => {
@@ -102,7 +102,7 @@ export function getBestGemSetPacks(
     onProgress({ current, total });
   }
 
-  // 이진 검색 헬퍼 함수
+  // 二分搜索辅助函数
   function binarySearchThreshold(gss: GemSet[], threshold: number): number {
     let left = 0;
     let right = gss.length;
@@ -132,15 +132,15 @@ export function getBestGemSetPacks(
   let missCount = 0;
 
   function getCandidatesCache(
-    currentBitmask: bigint, // 현재 사용한 젬
-    gemSetIndex: number, // 추출 대상 GemSet[], 반드시 0,1,2 중 하나
+    currentBitmask: bigint, // 当前使用的护石
+    gemSetIndex: number, // 提取目标 GemSet[]，必须是 0,1,2 中的一个
     threshold: number
-    // threshold는 currentMaxScore에 maxScore를 곱했을 때 targetMinScore보다는 커야 후보가 될 수 있기에
+    // threshold 是 currentMaxScore 乘以 maxScore 后必须大于 targetMinScore 才能成为候选
     // targetMinScore / currentMaxScore
   ): GemSet[] {
     const gss = gssList[gemSetIndex];
-    // 주어진 Core가 가진 GemSet 중 currentBitmask와 충돌하지 않는 GemSet의 목록을 반환
-    // assert gss는 반드시 MaxScore에 대해서 내림차순으로 정렬된 상태!
+    // 返回给定 Core 拥有的 GemSet 中不与 currentBitmask 冲突的 GemSet 列表
+    // 断言 gss 必须按 MaxScore 降序排序！
 
     const key = (currentBitmask << 3n) | BigInt(gemSetIndex);
 
@@ -151,12 +151,12 @@ export function getBestGemSetPacks(
     }
     missCount++;
 
-    // ✅ 최적화 4: 이진 검색으로 threshold 이상인 마지막 인덱스 찾기
+    // ✅ 优化 4: 使用二分搜索找到 threshold 以上的最后一个索引
     const maxValidIdx = binarySearchThreshold(gss, threshold);
 
     const res: GemSet[] = [];
 
-    // ✅ 최적화 5: 필요한 범위만 순회
+    // ✅ 优化 5: 仅遍历需要的范围
     for (let i = 0; i < maxValidIdx; i++) {
       const gs = gss[i];
       if (ignoreDuplication || (gs.bitmask & currentBitmask) === 0n) {
@@ -171,7 +171,7 @@ export function getBestGemSetPacks(
     return res;
   }
 
-  // ✅ Generator로 변경 - 메모리 효율적
+  // ✅ 改为 Generator - 内存效率更高
   function* getCandidatesGenerator(
     currentBitmask: bigint,
     gemSetIndex: number,
@@ -179,10 +179,10 @@ export function getBestGemSetPacks(
   ): Generator<GemSet> {
     const gss = gssList[gemSetIndex];
 
-    // 이진 검색으로 유효한 범위의 끝 찾기
+    // 使用二分搜索找到有效范围的末尾
     const maxValidIdx = binarySearchThreshold(gss, threshold);
 
-    // 필요한 만큼만 lazy하게 yield
+    // 仅按需 lazy 地 yield
     for (let i = 0; i < maxValidIdx; i++) {
       const gs = gss[i];
       if (ignoreDuplication || (gs.bitmask & currentBitmask) === 0n) {
@@ -193,14 +193,14 @@ export function getBestGemSetPacks(
   // const getCandidates = getCandidatesCache;
   const getCandidates = getCandidatesGenerator;
 
-  /* 코어 0개 */
+  /* 核心 0 个 */
   if (gssList.length == 0) return [];
-  /* 코어 1개 */
+  /* 核心 1 个 */
   if (gssList.length == 1) {
     return gss1.map((gs) => new GemSetPack(gs, null, null, scoreMaps));
   }
 
-  /* 코어 2개 */
+  /* 核心 2 个 */
   if (gssList.length == 2) {
     const gm2 = gss2.length > 0 ? gss2[0].maxScore : 1;
     let current = 0;
@@ -222,7 +222,7 @@ export function getBestGemSetPacks(
     }
   }
 
-  /* 코어 3개 */
+  /* 核心 3 个 */
   if (gssList.length == 3) {
     const gm2 = gss2.length > 0 ? gss2[0].maxScore : 1;
     const gm3 = gss3.length > 0 ? gss3[0].maxScore : 1;
@@ -240,7 +240,7 @@ export function getBestGemSetPacks(
           targetMin / (gs1.maxScore * gs2.maxScore)
         )) {
           if (gs1.maxScore * gs2.maxScore * gs3.maxScore < targetMin) break;
-          // 세 개의 GemSet으로 얻을 수 있는 전투력 범위 구함
+          // 计算三个 GemSet 能获得的战斗力范围
           const gsp = new GemSetPack(gs1, gs2, gs3, scoreMaps);
           const maxScore = gsp.maxScore;
           const minScore = gsp.minScore;
@@ -255,8 +255,8 @@ export function getBestGemSetPacks(
       }
     }
   }
-  // console.log('캐시 hit', hitCount, 'miss', missCount, hitCount / (hitCount + missCount));
-  // maxScore이 targetMin보다 작은 경우엔 아예 후보조차 아님
+  // console.log('缓存 hit', hitCount, 'miss', missCount, hitCount / (hitCount + missCount));
+  // maxScore 小于 targetMin 的情况根本不是候选
   answer = answer.filter((g) => g.maxScore >= targetMin);
   answer.sort((a, b) => b.maxScore - a.maxScore);
   return answer;

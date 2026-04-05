@@ -11,7 +11,13 @@
     clearGems,
     getCurrentProfile,
   } from '../../lib/state/profile.state.svelte';
+  import { type ArkGridGem } from '../../lib/models/arkGridGems';
   import ArkGridGemList from '../ArkGridGemList.svelte';
+
+  function gemContentKey(gem: ArkGridGem): string {
+    const norm = (s: string) => s.replace(/\s+/g, '');
+    return `${norm(gem.name ?? '')}|${gem.gemAttr}|${gem.req}|${gem.point}|${gem.grade ?? ''}|${norm(gem.option1.optionType)}|${gem.option1.value}|${norm(gem.option2.optionType)}|${gem.option2.value}`;
+  }
 
   interface Props {
     gems: AllGems;
@@ -71,6 +77,18 @@
     if (idx >= 0) {
       targetList.splice(idx, 1); // Svelte 5 数组 splice 自动触发响应式更新
     }
+  }
+
+  /** 复制一个护石 */
+  function copyGemToList(gem: typeof orderGems[number]) {
+    const targetList = gem.gemAttr === '질서' ? orderGems : chaosGems;
+    // 深拷贝一个新的护石对象
+    const copiedGem = {
+      ...gem,
+      option1: { ...gem.option1 },
+      option2: { ...gem.option2 },
+    };
+    targetList.push(copiedGem);
   }
 
   const LGemTotalCount = $derived({
@@ -147,8 +165,10 @@
   <ArkGridGemList
     gems={currentGems}
     showDeleteButton={true}
+    showCopyButton={true}
     editable={true}
     onDelete={(gem) => deleteGemFromList(gem as typeof orderGems[number])}
+    onCopy={(gem) => copyGemToList(gem as typeof orderGems[number])}
     emptyDescription={LEmpty[locale]}
     bind:this={container}
   ></ArkGridGemList>

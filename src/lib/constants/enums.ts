@@ -68,7 +68,7 @@ export type ScrollCommand = 'top' | 'bottom' | null;
 export const DISCORD_URL = 'https://discord.gg/Zk4K3xt9ub';
 export const KAKAOTALK_URL = 'https://open.kakao.com/o/s5bTYodi';
 
-// XXX BCP 47에 따르면 ko-kr이 맞다... (https://www.rfc-editor.org/rfc/bcp/bcp47.txt)
+// XXX 按照 BCP 47 标准应该是 ko-kr... (https://www.rfc-editor.org/rfc/bcp/bcp47.txt)
 export type AppLocale = 'ko_kr' | 'en_us' | 'zh_cn';
 export const supportedLocales: AppLocale[] = ['ko_kr', 'en_us', 'zh_cn'];
 

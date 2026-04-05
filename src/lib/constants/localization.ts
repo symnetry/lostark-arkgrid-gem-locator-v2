@@ -32,14 +32,35 @@ export const LSupporter: LocalizationName = {
   zh_cn: '辅助',
 };
 
+export const LErrorUnknown: LocalizationName = {
+  ko_kr: '알 수 없는 에러가 발생하였습니다.',
+  en_us: 'An unknown error occurred.',
+  zh_cn: '发生了未知错误。',
+};
+export const LErrorAlreadyRecording: LocalizationName = {
+  ko_kr: '이미 녹화 중입니다.',
+  en_us: 'Recording is already in progress.',
+  zh_cn: '已在录制中。',
+};
+export const LErrorScreenPermissionDenied: LocalizationName = {
+  ko_kr: '화면 공유를 거부하였습니다.',
+  en_us: 'Screen sharing was denied.',
+  zh_cn: '屏幕共享已被拒绝。',
+};
+export const LErrorWorkerInitFailed: LocalizationName = {
+  ko_kr: '분석 엔진을 준비하는데 실패하였습니다.',
+  en_us: 'Failed to prepare the analysis engine.',
+  zh_cn: '准备分析引擎失败。',
+};
+
 export function formatCoreType(
   attr: ArkGridAttr,
   ctype: ArkGridCoreType,
   locale: AppLocale,
   noSuffix?: boolean
 ) {
-  // 질서의 별
-  //  {attr}의 {ctype}
+  // 秩序之星
+  //  {attr}的{ctype}
   //
   if (locale === 'ko_kr') {
     return `${attr}의 ${ctype}`;
@@ -57,6 +78,6 @@ export function formatCoreType(
     }
 
     // return `${ArkGridAttrTypes[attr].name[locale]} of the ${ArkGridCoreTypeTypes[ctype].name[locale]}`;
-    // maxroll 표기
+    // maxroll 格式
   }
 }

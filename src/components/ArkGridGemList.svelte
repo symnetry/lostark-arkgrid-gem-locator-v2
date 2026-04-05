@@ -8,18 +8,23 @@
   interface Props {
     gems: ArkGridGem[];
     showDeleteButton?: boolean;
+    showCopyButton?: boolean;
     emptyDescription?: string;
     /** 是否允许编辑护石数值 */
     editable?: boolean;
     /** 自定义删除回调 */
     onDelete?: (gem: ArkGridGem) => void;
+    /** 自定义复制回调 */
+    onCopy?: (gem: ArkGridGem) => void;
   }
   let {
     gems,
     showDeleteButton = true,
+    showCopyButton = false,
     emptyDescription = '보유한 젬이 없습니다.',
     editable = false,
     onDelete,
+    onCopy,
   }: Props = $props();
 
   let container: HTMLDivElement;
@@ -71,7 +76,7 @@
 <div class="gems" bind:this={container}>
   {#if gems.length > 0}
     {#each gems as gem}
-      <ArkGridGemDetail {gem} {showDeleteButton} {editable} {onDelete} />
+      <ArkGridGemDetail {gem} {showDeleteButton} {showCopyButton} {editable} {onDelete} {onCopy} />
     {/each}
   {:else}
     <span class="epmty-description">{emptyDescription} </span>

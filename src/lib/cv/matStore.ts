@@ -1,5 +1,5 @@
 /**
- * 스프라이트 이미지를 한 번 fetch → cv.Mat 생성
+ * 一次性获取精灵图 → 生成 cv.Mat
  */
 import {
   type ArkGridAttr,
@@ -26,7 +26,7 @@ export type KeyGemName = ArkGridGemName;
 type TemplateCoordMap = Record<string, { x: number; y: number; w: number; h: number }>;
 
 async function fetchSpriteMat(url: string): Promise<CvMat> {
-  // url 이미지를 읽어온 뒤 Mat으로 변환
+  // 读取url图片后转换为Mat
   const cv = getCv();
   const img = await createImageBitmap(await fetch(url).then((r) => r.blob()));
   const off = new OffscreenCanvas(img.width, img.height);

@@ -34,12 +34,12 @@ interface AppConfig {
 
 // serializer object for svelte-persisted-state
 export const bigIntSerializer = {
-  // bigInt의 경우 string으로 바꾼 뒤 가장 끝에 n을 붙여서 직렬화
+  // bigInt 转换为string后在末尾添加n进行序列化
   stringify: (value: any) => {
     return JSON.stringify(value, (_, v) => (typeof v === 'bigint' ? v.toString() + 'n' : v));
   },
 
-  // string이고 n으로 끝나는 정수라면, BigInt화
+  // 如果是以n结尾的字符串整数，则转换为BigInt
   parse: (text: string) => {
     return JSON.parse(text, (_, v) => {
       if (typeof v === 'string' && /^\d+n$/.test(v)) {
@@ -75,7 +75,7 @@ export const appConfig = persistedState<AppConfig>(
     serializer: bigIntSerializer,
     beforeRead: (value) => {
       migrateAppConfig(value);
-      // localStore에 있는 건 app이 기대하는 형태가 아닐 수 있음
+      // localStore中的内容可能不是app期望的格式
       for (const profile of value.characterProfiles) {
         migrateProfile(profile);
       }
@@ -93,19 +93,19 @@ export function initArkGridCores(): Record<
   for (const attr of Object.values(ArkGridAttrs)) {
     cores[attr] = {} as Record<ArkGridCoreType, ArkGridCore | null>;
     for (const type of Object.values(ArkGridCoreTypes)) {
-      cores[attr][type] = null; // 코어가 아직 없는 상태
+      cores[attr][type] = null; // 核心尚未存在的状态
     }
   }
 
   return cores;
 }
 export function getProfile(name: string) {
-  // 현재 appConfig에서 주어진 이름의 프로필을 조회합니다.
+  // 从当前appConfig中查询给定名称的profile。
   return appConfig.current.characterProfiles.find((p) => p.characterName === name);
 }
 export function addNewProfile(profile: CharacterProfile) {
-  // 새 CharacterProfile을 appConfig에 등록합니다.
-  // 등록에 성공했으면 true, 실패했으면 false를 반환합니다.
+  // 将新的CharacterProfile注册到appConfig。
+  // 注册成功返回true，失败返回false。
   const name = profile.characterName;
   if (name.length == 0 || name.length > 16) return false;
   const existProfile = appConfig.current.characterProfiles.findIndex(

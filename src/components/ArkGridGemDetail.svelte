@@ -10,13 +10,16 @@
   interface Props {
     gem: ArkGridGem;
     showDeleteButton?: boolean;
+    showCopyButton?: boolean;
     /** 是否允许编辑（护石识别列表中开启） */
     editable?: boolean;
     /** 自定义删除回调（如不传则用默认的 deleteGem） */
     onDelete?: (gem: ArkGridGem) => void;
+    /** 自定义复制回调 */
+    onCopy?: (gem: ArkGridGem) => void;
   }
 
-  let { gem, showDeleteButton = true, editable = false, onDelete }: Props = $props();
+  let { gem, showDeleteButton = true, showCopyButton = false, editable = false, onDelete, onCopy }: Props = $props();
   let locale: AppLocale = $derived(appLocale.current);
 
   let editing = $state(false);
@@ -189,6 +192,9 @@
     </div>
   </div>
   <div class="edit-button">
+    {#if showCopyButton}
+      <button onclick={() => onCopy?.(gem)} title={locale === 'zh_cn' ? '复制护石' : locale === 'en_us' ? 'Copy Gem' : '젬 복사'}>📋</button>
+    {/if}
     {#if showDeleteButton}
       <button onclick={() => (onDelete ? onDelete(gem) : deleteGem(gem))}>🗑️</button>
     {/if}
